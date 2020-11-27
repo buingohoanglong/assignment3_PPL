@@ -175,15 +175,113 @@ class StaticChecker(BaseVisitor):
         pass
 
     def visitBinaryOp(self,ast, c):
-        lhs = self.visit(ast.left, c)
-        rhs = self.visit(ast.right, c)
-        if ast.op in ['+', '-', '*', '\\', '\\%']:
+        ltype = self.visit(ast.left, c)
+        rtype = self.visit(ast.right, c)
+        if ast.op in ['+', '-', '*', '\\', '\\%', '==', '!=', '<', '>', '<=', '>=']:
             # type inference
-            if lhs.mtype == Unknown():
-                pass
+            if ltype == Unknown():  # lhs is Id or CallExpr(func call) or ArrayCell(Id or func call with dimension)
+                if isinstance(ast.left, Id):
+                    c[ast.left.name] = IntType()
+                elif isinstance(ast.left, CallExpr):
+                    c[ast.left.method.name].restype = IntType()
+                elif isinstance(ast.left, ArrayCell):   # ???
+                    pass
+            if rtype == Unknown():  # rhs is Id or CallExpr(func call) or ArrayCell(Id or func call with dimension)
+                if isinstance(ast.right, Id):
+                    c[ast.right.name] = IntType()
+                elif isinstance(ast.right, CallExpr):
+                    c[ast.right.method.name].restype = IntType()
+                elif isinstance(ast.right, ArrayCell):   # ???
+                    pass
+            # type checking
+            if ltype != IntType() or rtype != IntType():
+                raise TypeMismatchInExpression(ast)
+            return IntType() if ast.op in ['+', '-', '*', '\\', '\\%'] else BoolType()
+        elif ast.op in ['+.', '-.', '*.', '\\.', '=/=', '<.', '>.', '<=.', '>=.']:
+            # type inference
+            if ltype == Unknown():  # lhs is Id or CallExpr(func call) or ArrayCell(Id or func call with dimension)
+                if isinstance(ast.left, Id):
+                    c[ast.left.name] = FloatType()
+                elif isinstance(ast.left, CallExpr):
+                    c[ast.left.method.name].restype = FloatType()
+                elif isinstance(ast.left, ArrayCell):   # ???
+                    pass
+            if rtype == Unknown():  # rhs is Id or CallExpr(func call) or ArrayCell(Id or func call with dimension)
+                if isinstance(ast.right, Id):
+                    c[ast.right.name] = FloatType()
+                elif isinstance(ast.right, CallExpr):
+                    c[ast.right.method.name].restype = FloatType()
+                elif isinstance(ast.right, ArrayCell):   # ???
+                    pass
+            # type checking
+            if ltype != FloatType() or rtype != FloatType():
+                raise TypeMismatchInExpression(ast)
+            return FloatType() if ast.op in ['+.', '-.', '*.', '\\.'] else BoolType()
+        elif ast.op in ['&&', '||']:
+            # type inference
+            if ltype == Unknown():  # lhs is Id or CallExpr(func call) or ArrayCell(Id or func call with dimension)
+                if isinstance(ast.left, Id):
+                    c[ast.left.name] = BoolType()
+                elif isinstance(ast.left, CallExpr):
+                    c[ast.left.method.name].restype = BoolType()
+                elif isinstance(ast.left, ArrayCell):   # ???
+                    pass
+            if rtype == Unknown():  # rhs is Id or CallExpr(func call) or ArrayCell(Id or func call with dimension)
+                if isinstance(ast.right, Id):
+                    c[ast.right.name] = BoolType()
+                elif isinstance(ast.right, CallExpr):
+                    c[ast.right.method.name].restype = BoolType()
+                elif isinstance(ast.right, ArrayCell):   # ???
+                    pass
+            # type checking
+            if ltype != BoolType() or rtype != BoolType():
+                raise TypeMismatchInExpression(ast)
+            return BoolType()
+      
+
 
     def visitUnaryOp(self,ast, c):
-        pass
+        exptype = self.visit(ast.body, c)
+        if ast.op == '-':
+            # type inference
+            if exptype == Unknown():  # exp is Id or CallExpr(func call) or ArrayCell(Id or func call with dimension)
+                if isinstance(ast.body, Id):
+                    c[ast.body.name] = IntType()
+                elif isinstance(ast.body, CallExpr):
+                    c[ast.body.method.name].restype = IntType()
+                elif isinstance(ast.body, ArrayCell):   # ???
+                    pass
+            # type checking
+            if exptype != IntType():
+                raise TypeMismatchInExpression(ast)
+            return IntType()
+        elif ast.op == '-.':
+            # type inference
+            if exptype == Unknown():  # exp is Id or CallExpr(func call) or ArrayCell(Id or func call with dimension)
+                if isinstance(ast.body, Id):
+                    c[ast.body.name] = FloatType()
+                elif isinstance(ast.body, CallExpr):
+                    c[ast.body.method.name].restype = FloatType()
+                elif isinstance(ast.body, ArrayCell):   # ???
+                    pass
+            # type checking
+            if exptype != FloatType():
+                raise TypeMismatchInExpression(ast)
+            return FloatType()
+        elif ast.op == '!':
+            # type inference
+            if exptype == Unknown():  # exp is Id or CallExpr(func call) or ArrayCell(Id or func call with dimension)
+                if isinstance(ast.body, Id):
+                    c[ast.body.name] = BoolType()
+                elif isinstance(ast.body, CallExpr):
+                    c[ast.body.method.name].restype = BoolType()
+                elif isinstance(ast.body, ArrayCell):   # ???
+                    pass
+            # type checking
+            if exptype != BoolType():
+                raise TypeMismatchInExpression(ast)
+            return BoolType()
+                
 
     def visitCallExpr(self,ast, c):
         pass
