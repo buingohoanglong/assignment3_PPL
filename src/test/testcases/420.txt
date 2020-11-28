@@ -1,0 +1,12 @@
+
+        Var: x;
+        Function: foo
+            Parameter: x
+            Body:
+                x = 1.1;
+                Return x;
+            EndBody.        
+        Function: main
+            Body:
+                y = foo(x) + 1;
+            EndBody.

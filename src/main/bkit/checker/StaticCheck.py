@@ -95,6 +95,9 @@ class StaticChecker(BaseVisitor):
                     paramtype = Unknown() if param.varDimen == [] else ArrayType(param.varDimen.copy(), Unknown())
                     intype_lst.append(paramtype)
                 c[funcname] = MType(intype_lst, Unknown())
+
+        if ('main' not in c) or (not isinstance(c['main'], MType)):
+            raise NoEntryPoint()
                 
         for decl in ast.decl:
             if isinstance(decl, FuncDecl):
@@ -121,12 +124,13 @@ class StaticChecker(BaseVisitor):
             paramname = param.variable.name
             if paramname in param_envir:
                 raise Redeclared(Parameter(), paramname)
-
+            param_envir[paramname] = Unknown() if param.varDimen == [] else ArrayType(param.varDimen.copy(), Unknown())
+      
         # update param of this function from outer environment
         for paramname, paramtype in zip(param_envir, c[ast.name.name].intype):
             param_envir[paramname] = paramtype
 
-
+       
         # visit local var declare
         local_envir = param_envir.copy()
         for vardecl in ast.body[0]:
@@ -138,22 +142,23 @@ class StaticChecker(BaseVisitor):
             self.visit(stmt, total_envir)
             # type inference for function parameters
             for paramname, paramindex in zip(param_envir, range(len(param_envir))):
-                type1 = param_envir[paramname]
+                type1 = total_envir[paramname]
                 type2 = total_envir[ast.name.name].intype[paramindex]
                 if type1 == Unknown():
-                    param_envir[paramname] = type2
-                    # update total_envir
-                    total_envir.update(param_envir)
+                    type1 = type2
+                    total_envir[paramname] = type2
                 if isinstance(type1, ArrayType):
-                    if param_envir[paramname].eletype == Unknown():
-                        param_envir[paramname].eletype = type2.eletype
-                        # update total_envir
-                        total_envir.update(param_envir)
+                    if type1.eletype == Unknown():
+                        type1.eletype = type2.eletype
+                        total_envir[paramname].eletype = type2.eletype
                 if type2 == Unknown():
+                    type2 = type1
                     total_envir[ast.name.name].intype[paramindex] = type1
                 if isinstance(type2, ArrayType):
-                    if total_envir[ast.name.name].intype[paramindex].eletype == Unknown():
+                    if type2.eletype == Unknown():
+                        type2.eletype = type1.eletype
                         total_envir[ast.name.name].intype[paramindex].eletype = type1.eletype
+
                 if type1 != type2: # does this happen ???
                     raise TypeMismatchInStatement(stmt)
         
@@ -163,7 +168,55 @@ class StaticChecker(BaseVisitor):
                 c[name] = total_envir[name]
 
     def visitAssign(self,ast, c):
-        pass
+        rtype = self.visit(ast.rhs, c)
+        ltype = self.visit(ast.lhs, c)
+        if ltype == Unknown() and rtype == Unknown():
+            raise TypeCannotBeInferred(ast)
+        elif ltype == Unknown() and rtype != Unknown():
+            if isinstance(rtype, ArrayType):
+                raise TypeMismatchInStatement(ast)
+            if isinstance(ast.lhs, Id):
+                c[ast.lhs.name] = rtype
+            elif isinstance(ast.lhs, ArrayCell):
+                if isinstance(ast.lhs.arr, Id):
+                    c[ast.lhs.arr.name].eletype = rtype
+                elif isinstance(ast.lhs.arr, CallExpr):
+                    c[ast.lhs.arr.method.name].restype.eletype = rtype
+        elif ltype != Unknown() and rtype == Unknown():
+            if isinstance(ltype, ArrayType):
+                raise TypeMismatchInStatement(ast)
+            if isinstance(ast.rhs, Id):
+                c[ast.rhs.name] = ltype
+            elif isinstance(ast.rhs, ArrayCell):
+                if isinstance(ast.rhs.arr, Id):
+                    c[ast.rhs.arr.name].eletype = ltype
+                elif isinstance(ast.rhs.arr, CallExpr):
+                    c[ast.rhs.arr.method.name].restype.eletype = ltype
+            elif isinstance(ast.rhs, CallExpr):
+                c[ast.rhs.method.name].restype = ltype
+        elif ltype != Unknown() and rtype != Unknown():
+            if isinstance(ltype, ArrayType) and not isinstance(rtype, ArrayType):
+                raise TypeMismatchInStatement(ast)
+            elif not isinstance(ltype, ArrayType) and isinstance(rtype, ArrayType):
+                raise TypeMismatchInStatement(ast)
+            elif isinstance(ltype, ArrayType) and isinstance(rtype, ArrayType):
+                if ltype.dimen != rtype.dimen:
+                    raise TypeMismatchInExpression(ast)
+                if ltype.eletype == Unknown() and rtype.eletype != Unknown():
+                    c[ast.lhs.name].eletype = rtype.eletype
+                elif ltype.eletype != Unknown() and rtype.eletype == Unknown():
+                    if isinstance(ast.rhs, Id):
+                        c[ast.rhs.name].eletype = ltype.eletype
+                    elif isinstance(ast.rhs, CallExpr):
+                        c[ast.rhs.method.name].restype.eletype = ltype.eletype
+                elif ltype.eletype == Unknown() and rtype.eletype == Unknown():
+                    raise TypeCannotBeInferred(ast)
+                elif ltype.eletype != Unknown() and rtype.eletype != Unknown():
+                    if ltype.eletype != rtype.eletype:
+                        raise TypeMismatchInStatement(ast)
+            elif not isinstance(ltype, ArrayType) and not isinstance(rtype, ArrayType):
+                if ltype != rtype:
+                    raise TypeMismatchInStatement(ast)
 
     def visitIf(self,ast, c):
         pass
@@ -192,176 +245,69 @@ class StaticChecker(BaseVisitor):
     def visitBinaryOp(self,ast, c):
         ltype = self.visit(ast.left, c)
         rtype = self.visit(ast.right, c)
-        if ast.op in ['+', '-', '*', '\\', '\\%', '==', '!=', '<', '>', '<=', '>=']:
-            # lhs type inference
-            if ltype == Unknown():  # lhs is Id or CallExpr(func call) or ArrayCell(Id or func call with dimension)
-                if isinstance(ast.left, Id):
-                    ltype = IntType()
-                    c[ast.left.name] = ltype
-                elif isinstance(ast.left, CallExpr):
-                    ltype = IntType()
-                    c[ast.left.method.name].restype = ltype
-                elif isinstance(ast.left, ArrayCell):   # lhs is ArrayCell(Id or func call with dimension)
-                    if isinstance(ast.left.arr, Id):    # ArrayCell is Id[] (Id type is ArrayType([], eletype?))
-                        ltype = IntType()
-                        c[ast.left.arr.name].eletype = ltype
-                    elif isinstance(ast.left.arr, CallExpr): # ArrayCell is funccall()[] (return type is ArrayType([], eletype?))
-                        ltype = IntType()
-                        c[ast.left.arr.method.name].restype.eletype = ltype
-            # rhs type inference
-            if rtype == Unknown():  # rhs is Id or CallExpr(func call) or ArrayCell(Id or func call with dimension)
-                if isinstance(ast.right, Id):
-                    rtype = IntType()
-                    c[ast.right.name] = rtype
-                elif isinstance(ast.right, CallExpr):
-                    rtype = IntType()
-                    c[ast.right.method.name].restype = rtype
-                elif isinstance(ast.right, ArrayCell):   # rhs is ArrayCell(Id or func call with dimension)
-                    if isinstance(ast.right.arr, Id):    # ArrayCell is Id[] (Id type is ArrayType([], eletype?))
-                        rtype = IntType()
-                        c[ast.right.arr.name].eletype = rtype
-                    elif isinstance(ast.right.arr, CallExpr): # ArrayCell is funccall()[] (return type is ArrayType([], eletype?))
-                        rtype = IntType()
-                        c[ast.right.arr.method.name].restype.eletype = rtype
-            # type checking
-            if ltype != IntType() or rtype != IntType():
-                raise TypeMismatchInExpression(ast)
-            return IntType() if ast.op in ['+', '-', '*', '\\', '\\%'] else BoolType()
-        elif ast.op in ['+.', '-.', '*.', '\\.', '=/=', '<.', '>.', '<=.', '>=.']:
-            # lhs type inference
-            if ltype == Unknown():  # lhs is Id or CallExpr(func call) or ArrayCell(Id or func call with dimension)
-                if isinstance(ast.left, Id):
-                    ltype = FloatType()
-                    c[ast.left.name] = ltype
-                elif isinstance(ast.left, CallExpr):
-                    ltype = FloatType()
-                    c[ast.left.method.name].restype = ltype
-                elif isinstance(ast.left, ArrayCell):   # lhs is ArrayCell(Id or func call with dimension)
-                    if isinstance(ast.left.arr, Id):    # ArrayCell is Id[] (Id type is ArrayType([], eletype?))
-                        ltype = FloatType()
-                        c[ast.left.arr.name].eletype = ltype
-                    elif isinstance(ast.left.arr, CallExpr): # ArrayCell is funccall()[] (return type is ArrayType([], eletype?))
-                        ltype = FloatType()
-                        c[ast.left.arr.method.name].restype.eletype = ltype
-            # rhs type inference
-            if rtype == Unknown():  # rhs is Id or CallExpr(func call) or ArrayCell(Id or func call with dimension)
-                if isinstance(ast.right, Id):
-                    rtype = FloatType()
-                    c[ast.right.name] = rtype
-                elif isinstance(ast.right, CallExpr):
-                    rtype = FloatType()
-                    c[ast.right.method.name].restype = rtype
-                elif isinstance(ast.right, ArrayCell):   # rhs is ArrayCell(Id or func call with dimension)
-                    if isinstance(ast.right.arr, Id):    # ArrayCell is Id[] (Id type is ArrayType([], eletype?))
-                        rtype = FloatType()
-                        c[ast.right.arr.name].eletype = rtype
-                    elif isinstance(ast.right.arr, CallExpr): # ArrayCell is funccall()[] (return type is ArrayType([], eletype?))
-                        rtype = FloatType()
-                        c[ast.right.arr.method.name].restype.eletype = rtype
-            # type checking
-            if ltype != FloatType() or rtype != FloatType():
-                raise TypeMismatchInExpression(ast)
-            return FloatType() if ast.op in ['+.', '-.', '*.', '\\.'] else BoolType()
-        elif ast.op in ['&&', '||']:
-            # lhs type inference
-            if ltype == Unknown():  # lhs is Id or CallExpr(func call) or ArrayCell(Id or func call with dimension)
-                if isinstance(ast.left, Id):
-                    ltype = BoolType()
-                    c[ast.left.name] = ltype
-                elif isinstance(ast.left, CallExpr):
-                    ltype = BoolType()
-                    c[ast.left.method.name].restype = ltype
-                elif isinstance(ast.left, ArrayCell):   # lhs is ArrayCell(Id or func call with dimension)
-                    if isinstance(ast.left.arr, Id):    # ArrayCell is Id[] (Id type is ArrayType([], eletype?))
-                        ltype = BoolType()
-                        c[ast.left.arr.name].eletype = ltype
-                    elif isinstance(ast.left.arr, CallExpr): # ArrayCell is funccall()[] (return type is ArrayType([], eletype?))
-                        ltype = BoolType()
-                        c[ast.left.arr.method.name].restype.eletype = ltype
-            # rhs type inference
-            if rtype == Unknown():  # rhs is Id or CallExpr(func call) or ArrayCell(Id or func call with dimension)
-                if isinstance(ast.right, Id):
-                    rtype = BoolType()
-                    c[ast.right.name] = rtype
-                elif isinstance(ast.right, CallExpr):
-                    rtype = BoolType()
-                    c[ast.right.method.name].restype = rtype
-                elif isinstance(ast.right, ArrayCell):   # rhs is ArrayCell(Id or func call with dimension)
-                    if isinstance(ast.right.arr, Id):    # ArrayCell is Id[] (Id type is ArrayType([], eletype?))
-                        rtype = BoolType()
-                        c[ast.right.arr.name].eletype = rtype
-                    elif isinstance(ast.right.arr, CallExpr): # ArrayCell is funccall()[] (return type is ArrayType([], eletype?))
-                        rtype = BoolType()
-                        c[ast.right.arr.method.name].restype.eletype = rtype
-            # type checking
-            if ltype != BoolType() or rtype != BoolType():
-                raise TypeMismatchInExpression(ast)
-            return BoolType()
-      
+
+        typedict = {}
+        typedict.update({operator: {'operand_type': IntType(), 'return_type': IntType()} for operator in ['+', '-', '*', '\\', '\\%']})
+        typedict.update({operator: {'operand_type': IntType(), 'return_type': BoolType()} for operator in ['==', '!=', '<', '>', '<=', '>=']})
+        typedict.update({operator: {'operand_type': FloatType(), 'return_type': FloatType()} for operator in ['+.', '-.', '*.', '\\.']})
+        typedict.update({operator: {'operand_type': FloatType(), 'return_type': BoolType()} for operator in ['=/=', '<.', '>.', '<=.', '>=.']})
+        typedict.update({operator: {'operand_type': BoolType(), 'return_type': BoolType()} for operator in ['&&', '||']})
+
+        # lhs type inference
+        if ltype == Unknown():  # lhs is Id or CallExpr(func call) or ArrayCell(Id or func call with dimension)
+            ltype = typedict[ast.op]['operand_type']
+            if isinstance(ast.left, Id):
+                c[ast.left.name] = ltype
+            elif isinstance(ast.left, CallExpr):
+                c[ast.left.method.name].restype = ltype
+            elif isinstance(ast.left, ArrayCell):   # lhs is ArrayCell(Id or func call with dimension)
+                if isinstance(ast.left.arr, Id):    # ArrayCell is Id[] (Id type is ArrayType([], eletype?))
+                    c[ast.left.arr.name].eletype = ltype
+                elif isinstance(ast.left.arr, CallExpr): # ArrayCell is funccall()[] (return type is ArrayType([], eletype?))
+                    c[ast.left.arr.method.name].restype.eletype = ltype
+        # rhs type inference
+        if rtype == Unknown():  # rhs is Id or CallExpr(func call) or ArrayCell(Id or func call with dimension)
+            rtype = typedict[ast.op]['operand_type']
+            if isinstance(ast.right, Id):
+                c[ast.right.name] = rtype
+            elif isinstance(ast.right, CallExpr):
+                c[ast.right.method.name].restype = rtype
+            elif isinstance(ast.right, ArrayCell):   # rhs is ArrayCell(Id or func call with dimension)
+                if isinstance(ast.right.arr, Id):    # ArrayCell is Id[] (Id type is ArrayType([], eletype?))
+                    c[ast.right.arr.name].eletype = rtype
+                elif isinstance(ast.right.arr, CallExpr): # ArrayCell is funccall()[] (return type is ArrayType([], eletype?))
+                    c[ast.right.arr.method.name].restype.eletype = rtype
+        # type checking
+        if ltype != typedict[ast.op]['operand_type'] or rtype != typedict[ast.op]['operand_type']:
+            raise TypeMismatchInExpression(ast)
+        return typedict[ast.op]['return_type']
+
 
 
     def visitUnaryOp(self,ast, c):
         exptype = self.visit(ast.body, c)
-        if ast.op == '-':
-            # type inference
-            if exptype == Unknown():  # body is Id or CallExpr(func call) or ArrayCell(Id or func call with dimension)
-                if isinstance(ast.body, Id):
-                    exptype = IntType()
-                    c[ast.body.name] = exptype
-                elif isinstance(ast.body, CallExpr):
-                    exptype = IntType()
-                    c[ast.body.method.name].restype = exptype
-                elif isinstance(ast.body, ArrayCell):   # body is ArrayCell(Id or func call with dimension)
-                    if isinstance(ast.body.arr, Id):    # ArrayCell is Id[] (Id type is ArrayType([], eletype?))
-                        exptype = IntType()
-                        c[ast.body.arr.name].eletype = exptype
-                    elif isinstance(ast.body.arr, CallExpr): # ArrayCell is funccall()[] (return type is ArrayType([], eletype?))
-                        exptype = IntType()
-                        c[ast.body.arr.method.name].restype.eletype = exptype
-            # type checking
-            if exptype != IntType():
-                raise TypeMismatchInExpression(ast)
-            return IntType()
-        elif ast.op == '-.':
-            # type inference
-            if exptype == Unknown():  # body is Id or CallExpr(func call) or ArrayCell(Id or func call with dimension)
-                if isinstance(ast.body, Id):
-                    exptype = FloatType()
-                    c[ast.body.name] = exptype
-                elif isinstance(ast.body, CallExpr):
-                    exptype = FloatType()
-                    c[ast.body.method.name].restype = exptype
-                elif isinstance(ast.body, ArrayCell):   # body is ArrayCell(Id or func call with dimension)
-                    if isinstance(ast.body.arr, Id):    # ArrayCell is Id[] (Id type is ArrayType([], eletype?))
-                        exptype = FloatType()
-                        c[ast.body.arr.name].eletype = exptype
-                    elif isinstance(ast.body.arr, CallExpr): # ArrayCell is funccall()[] (return type is ArrayType([], eletype?))
-                        exptype = FloatType()
-                        c[ast.body.arr.method.name].restype.eletype = exptype
-            # type checking
-            if exptype != FloatType():
-                raise TypeMismatchInExpression(ast)
-            return FloatType()
-        elif ast.op == '!':
-            # type inference
-            if exptype == Unknown():  # body is Id or CallExpr(func call) or ArrayCell(Id or func call with dimension)
-                if isinstance(ast.body, Id):
-                    exptype = BoolType()
-                    c[ast.body.name] = exptype
-                elif isinstance(ast.body, CallExpr):
-                    exptype = BoolType()
-                    c[ast.body.method.name].restype = exptype
-                elif isinstance(ast.body, ArrayCell):   # body is ArrayCell(Id or func call with dimension)
-                    if isinstance(ast.body.arr, Id):    # ArrayCell is Id[] (Id type is ArrayType([], eletype?))
-                        exptype = BoolType()
-                        c[ast.body.arr.name].eletype = exptype
-                    elif isinstance(ast.body.arr, CallExpr): # ArrayCell is funccall()[] (return type is ArrayType([], eletype?))
-                        exptype = BoolType()
-                        c[ast.body.arr.method.name].restype.eletype = exptype
-            # type checking
-            if exptype != BoolType():
-                raise TypeMismatchInExpression(ast)
-            return BoolType()
+        typedict = {
+            '-': {'operand_type': IntType(), 'return_type': IntType()},
+            '-.': {'operand_type': FloatType(), 'return_type': FloatType()},
+            '!': {'operand_type': BoolType(), 'return_type': BoolType()}
+        }
+        # type inference
+        if exptype == Unknown():  # body is Id or CallExpr(func call) or ArrayCell(Id or func call with dimension)
+            exptype = typedict[ast.op]['operand_type']
+            if isinstance(ast.body, Id):
+                c[ast.body.name] = exptype
+            elif isinstance(ast.body, CallExpr):
+                c[ast.body.method.name].restype = exptype
+            elif isinstance(ast.body, ArrayCell):   # body is ArrayCell(Id or func call with dimension)
+                if isinstance(ast.body.arr, Id):    # ArrayCell is Id[] (Id type is ArrayType([], eletype?))
+                    c[ast.body.arr.name].eletype = exptype
+                elif isinstance(ast.body.arr, CallExpr): # ArrayCell is funccall()[] (return type is ArrayType([], eletype?))
+                    c[ast.body.arr.method.name].restype.eletype = exptype
+        # type checking
+        if exptype != typedict[ast.op]['operand_type']:
+            raise TypeMismatchInExpression(ast)
+        return typedict[ast.op]['return_type']
+    
                 
     # check intype
     # return restype
@@ -389,7 +335,7 @@ class StaticChecker(BaseVisitor):
                     c[ast.param[i].method.name].restype = type1
             elif type1 == Unknown() and type2 == Unknown():
                 return TypeCannotInferred() # return message to containing stmt (raise TypeCannotBeInferred at containing stmt)
-            elif type1 != Unknown and type2 != Unknown():
+            elif type1 != Unknown() and type2 != Unknown():
                 if isinstance(type1, ArrayType) and not isinstance(type2, ArrayType):
                     raise TypeMismatchInExpression(ast)
                 elif not isinstance(type1, ArrayType) and isinstance(type2, ArrayType):
@@ -418,11 +364,24 @@ class StaticChecker(BaseVisitor):
     # check Undeclare, check index
     # return innermost eletype
     def visitArrayCell(self,ast, c):
-        if isinstance(ast.arr, Id):
-            if ast.arr.name not in c:
-                raise Undeclared(Identifier(), ast.arr.name)
-            if len(ast.idx) != len(c[ast.arr.name].dimen):
+        arrtype = self.visit(ast.arr, c)
+        if len(arrtype.dimen) != len(ast.idx):
+            raise TypeMismatchInExpression(ast)
+        for index in ast.idx:
+            indextype = self.visit(index, c)
+            if isinstance(indextype, ArrayType):
                 raise TypeMismatchInExpression(ast)
+            if indextype == Unknown():  # index is Id or CallExpr or ArrayCell
+                if isinstance(index, Id):
+                    c[index.name] = IntType()
+                elif isinstance(index, CallExpr):
+                    c[index.method.name].restype = IntType()
+                elif isinstance(index, ArrayCell):
+                    c[index.arr.name].eletype = IntType()
+            if indextype != IntType():
+                raise TypeMismatchInExpression(ast)
+        return self.visit(ast.arr, c)
+
 
     def visitId(self,ast, c):
         if ast.name not in c:
@@ -445,13 +404,18 @@ class StaticChecker(BaseVisitor):
     def visitArrayLiteral(self,ast, c):
         eletype = Unknown()
         dimen = [len(ast.value)]
+        innertype = Unknown()
         innerdimen = []
         for ele in ast.value:
-            if eletype != Unknown() and eletype != self.visit(ele, c):
+            inner_ele_type = self.visit(ele, c)
+            if innertype != Unknown() and innertype != inner_ele_type:
                 raise InvalidArrayLiteral(ast)
-            eletype = self.visit(ele, c)
+            innertype = inner_ele_type
             if isinstance(ele, ArrayLiteral):
-                innerdimen = self.visit(ele, c).dimen
+                eletype = innertype.eletype
+                innerdimen = innertype.dimen
+            else:
+                eletype = innertype
         dimen += innerdimen
         return ArrayType(dimen, eletype)
 

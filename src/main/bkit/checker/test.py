@@ -42,10 +42,14 @@ class A:
 
 
 
-a = [A(), B()]
-o = {}
-for ele in a:
-    o[ele.value] = ele._type
-b = [1,2]
-for ele, num in zip(o, b):
-    print(o[ele], num)
+# a = [A(), B()]
+# def foo(a):
+#     return a[0]
+# b = foo(a)
+# b.value = 10
+# print(b)
+# print(a)
+typedict = {}
+typedict.update({operator: {'operand_type': B(), 'return_type': B()} for operator in ['+', '-', '*', '\\', '\\%']})
+
+print(typedict)

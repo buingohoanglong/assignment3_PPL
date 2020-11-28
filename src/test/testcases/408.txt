@@ -1,0 +1,4 @@
+Var: x, main, z;
+        Function: foo
+            Body:
+            EndBody.

@@ -1,0 +1,4 @@
+Var: x, y, z;
+        Function: main
+            Body:
+            EndBody.
