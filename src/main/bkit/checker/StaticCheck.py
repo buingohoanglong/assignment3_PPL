@@ -121,7 +121,6 @@ class StaticChecker(BaseVisitor):
             paramname = param.variable.name
             if paramname in param_envir:
                 raise Redeclared(Parameter(), paramname)
-            param_envir[paramname] = Unknown()
 
         # update param of this function from outer environment
         for paramname, paramtype in zip(param_envir, c[ast.name.name].intype):
@@ -145,8 +144,16 @@ class StaticChecker(BaseVisitor):
                     param_envir[paramname] = type2
                     # update total_envir
                     total_envir.update(param_envir)
+                if isinstance(type1, ArrayType):
+                    if param_envir[paramname].eletype == Unknown():
+                        param_envir[paramname].eletype = type2.eletype
+                        # update total_envir
+                        total_envir.update(param_envir)
                 if type2 == Unknown():
                     total_envir[ast.name.name].intype[paramindex] = type1
+                if isinstance(type2, ArrayType):
+                    if total_envir[ast.name.name].intype[paramindex].eletype == Unknown():
+                        total_envir[ast.name.name].intype[paramindex].eletype = type1.eletype
                 if type1 != type2: # does this happen ???
                     raise TypeMismatchInStatement(stmt)
         
