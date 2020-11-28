@@ -87,10 +87,14 @@ class StaticChecker(BaseVisitor):
             if isinstance(decl, VarDecl):
                 self.visit(decl, c)
             else:
-                funcname = ast.name.name
+                funcname = decl.name.name
+                intype_lst = []
                 if funcname in c:
                     raise Redeclared(Function(), funcname)
-                c[funcname] = MType([Unknown()] * len(decl.param), Unknown())   # check Unknown or Array([],Unknown())
+                for param in decl.param:
+                    paramtype = Unknown() if param.varDimen == [] else ArrayType(param.varDimen.copy(), Unknown())
+                    intype_lst.append(paramtype)
+                c[funcname] = MType(intype_lst, Unknown())
                 
         for decl in ast.decl:
             if isinstance(decl, FuncDecl):
