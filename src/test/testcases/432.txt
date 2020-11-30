@@ -1,0 +1,10 @@
+
+        Var: x;
+        Function: main
+            Body:
+                Var: x,y,z;
+                Var: t;
+                t = !x && y || !z;
+                t = !x + 1;
+                Return;
+            EndBody.

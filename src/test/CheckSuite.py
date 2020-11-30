@@ -243,7 +243,7 @@ class CheckSuite(unittest.TestCase):
         expect = str(Undeclared(Function(), "foo"))
         self.assertTrue(TestChecker.test(input,expect,422)) 
 
-    def test_undeclare_function_3(self):
+    def test_undeclare_function_3(self):    # ???
         """Simple program: main"""
         input = """
         Var: x;
@@ -260,20 +260,136 @@ class CheckSuite(unittest.TestCase):
         expect = str(Undeclared(Function(), "foo"))
         self.assertTrue(TestChecker.test(input,expect,423)) 
 
-    # # Test array cell
-    # def test_undeclare_function_3(self):
-    #     """Simple program: main"""
-    #     input = """
-    #     Var: x;
-    #     Function: main
-    #         Body:
-    #             Var: foo;
-    #             x = 1 + 2 - foo(1);
-    #         EndBody.
-    #     Function: foo
-    #         Parameter: x
-    #         Body:
-    #             Return x;
-    #         EndBody."""
-    #     expect = str(Undeclared(Function(), "foo"))
-    #     self.assertTrue(TestChecker.test(input,expect,423))    
+    # Test unidentical array dimension
+    def test_unidentical_array_dimension_1(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Parameter: x[2][3], y
+            Body:
+                x = {1,2,3};
+                Return;
+            EndBody."""
+        expect = str(TypeMismatchInStatement(Assign(Id("x"), ArrayLiteral([IntLiteral(1),IntLiteral(2),IntLiteral(3)]))))
+        self.assertTrue(TestChecker.test(input,expect,424))    
+
+    def test_unidentical_array_dimension_2(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Body:
+                Var: x[2][3];
+                Var: y[3][2] = { {1,2}, {3,4}, {5,6} };
+                x = y;
+                Return;
+            EndBody."""
+        expect = str(TypeMismatchInStatement(Assign(Id("x"), Id("y"))))
+        self.assertTrue(TestChecker.test(input,expect,425))    
+
+    # Test identical array dimension
+    def test_identical_array_dimension(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Body:
+                Var: x[3][2] = { {6,5}, {4,3}, {2,1} };
+                Var: y[3][2] = { {1,2}, {3,4}, {5,6} };
+                x = y;
+                Return;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,426)) 
+
+    # Test unidentical array element type
+    def test_unidentical_array_eletype(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Body:
+                Var: x[3][2] = { {6.6,5.5}, {4.4,3.3}, {2.2,1.1} };
+                Var: y[3][2] = { {1,2}, {3,4}, {5,6} };
+                x = y;
+                Return;
+            EndBody."""
+        expect = str(TypeMismatchInStatement(Assign(Id("x"), Id("y"))))
+        self.assertTrue(TestChecker.test(input,expect,427))
+
+    # Test invalid array indexing
+    def test_invalid_array_index_1(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Body:
+                Var: x[3][2] = { {6.6,5.5}, {4.4,3.3}, {2.2,1.1} };
+                x[2] = {1.1, 2.2};
+                Return;
+            EndBody."""
+        expect = str(TypeMismatchInExpression(ArrayCell(Id("x"), [IntLiteral(2)])))
+        self.assertTrue(TestChecker.test(input,expect,428))    
+
+    def test_invalid_array_index_2(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Body:
+                Var: x[3][2] = { {6.6,5.5}, {4.4,3.3}, {2.2,1.1} };
+                Var: y = 5, z = 1.2;
+                x[y + y*2 - 4 \\ 2 % 2][z +. z *. 2.2] = 1.1;
+                Return;
+            EndBody."""
+        expect = str(TypeMismatchInExpression(ArrayCell(Id("x"),[BinaryOp("-",BinaryOp("+",Id("y"),BinaryOp("*",Id("y"),IntLiteral(2))),BinaryOp("%",BinaryOp("\\",IntLiteral(4),IntLiteral(2)),IntLiteral(2))),BinaryOp("+.",Id("z"),BinaryOp("*.",Id("z"),FloatLiteral(2.2)))])))
+        self.assertTrue(TestChecker.test(input,expect,429))
+
+    # Test invalid unary op
+    def test_invalid_unary_op(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Body:
+                Var: x, y = 1e3, z = 10;
+                z = - z;
+                x = !!x;
+                y = -. -. -.y;
+                x = !(-x);
+                Return;
+            EndBody."""
+        expect = str(TypeMismatchInExpression(UnaryOp("-", Id("x"))))
+        self.assertTrue(TestChecker.test(input,expect,430))            
+
+    # Test invalid binary op
+    def test_invalid_binary_op_1(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Body:
+                Var: x,y,z;
+                x = (1 + 2 *3 \\ 4 % 5) * 6;
+                y = 1.1 *. 2.2 +. 3.3 -. 4.4 \\. 5.5;
+                z = x + y;
+                Return;
+            EndBody."""
+        expect = str(TypeMismatchInExpression(BinaryOp("+", Id("x"), Id("y"))))
+        self.assertTrue(TestChecker.test(input,expect,431))        
+
+    def test_invalid_binary_op_2(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Body:
+                Var: x,y,z;
+                Var: t;
+                t = !x && y || !z;
+                t = !x + 1;
+                Return;
+            EndBody."""
+        expect = str(TypeMismatchInExpression(BinaryOp("+", UnaryOp("!", Id("x")), IntLiteral(1))))
+        self.assertTrue(TestChecker.test(input,expect,432)) 

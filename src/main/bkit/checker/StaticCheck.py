@@ -201,7 +201,7 @@ class StaticChecker(BaseVisitor):
                 raise TypeMismatchInStatement(ast)
             elif isinstance(ltype, ArrayType) and isinstance(rtype, ArrayType):
                 if ltype.dimen != rtype.dimen:
-                    raise TypeMismatchInExpression(ast)
+                    raise TypeMismatchInStatement(ast)
                 if ltype.eletype == Unknown() and rtype.eletype != Unknown():
                     c[ast.lhs.name].eletype = rtype.eletype
                 elif ltype.eletype != Unknown() and rtype.eletype == Unknown():
@@ -247,7 +247,7 @@ class StaticChecker(BaseVisitor):
         rtype = self.visit(ast.right, c)
 
         typedict = {}
-        typedict.update({operator: {'operand_type': IntType(), 'return_type': IntType()} for operator in ['+', '-', '*', '\\', '\\%']})
+        typedict.update({operator: {'operand_type': IntType(), 'return_type': IntType()} for operator in ['+', '-', '*', '\\', '%']})
         typedict.update({operator: {'operand_type': IntType(), 'return_type': BoolType()} for operator in ['==', '!=', '<', '>', '<=', '>=']})
         typedict.update({operator: {'operand_type': FloatType(), 'return_type': FloatType()} for operator in ['+.', '-.', '*.', '\\.']})
         typedict.update({operator: {'operand_type': FloatType(), 'return_type': BoolType()} for operator in ['=/=', '<.', '>.', '<=.', '>=.']})

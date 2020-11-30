@@ -1,0 +1,9 @@
+
+        Var: x;
+        Function: main
+            Body:
+                Var: x[3][2] = { {6.6,5.5}, {4.4,3.3}, {2.2,1.1} };
+                Var: y = 5, z = 1.2;
+                x[y + y*2 - 4 \ 2 % 2][z +. z *. 2.2] = 1.1;
+                Return;
+            EndBody.
