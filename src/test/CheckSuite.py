@@ -393,3 +393,91 @@ class CheckSuite(unittest.TestCase):
             EndBody."""
         expect = str(TypeMismatchInExpression(BinaryOp("+", UnaryOp("!", Id("x")), IntLiteral(1))))
         self.assertTrue(TestChecker.test(input,expect,432)) 
+
+    def test_invalid_binary_op_3(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Body:
+                Var: x,y,z;
+                Var: t, m, n, k = True;
+                t = x * y - z * (x \\ 2 + 1);
+                k = (m =/= n) && ( m >=. n) || (m <. n);
+                x = t >= z;
+                Return;
+            EndBody."""
+        expect = str(TypeMismatchInStatement(Assign(Id("x"), BinaryOp(">=", Id("t"), Id("z")))))
+        self.assertTrue(TestChecker.test(input,expect,433))
+
+        # Test type cannot be inferred
+    def test_type_cannot_be_inferred_1(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Parameter: x
+            Body:
+                Var: y;
+                x = y;
+                Return;
+            EndBody."""
+        expect = str(TypeCannotBeInferred(Assign(Id("x"), Id("y"))))
+        self.assertTrue(TestChecker.test(input,expect,434))
+
+    def test_type_cannot_be_inferred_2(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Parameter: x
+            Body:
+                Var: y, a = 10;
+                y = a + foo(x);
+                Return;
+            EndBody.
+        Function: foo
+            Parameter: x
+            Body:
+                Return 1;
+            EndBody."""
+        expect = str(TypeCannotBeInferred(Assign(Id("y"), BinaryOp("+", Id("a"), CallExpr(Id("foo"), [Id("x")])))))
+        self.assertTrue(TestChecker.test(input,expect,435))
+
+    def test_type_cannot_be_inferred_3(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Parameter: x
+            Body:
+                Var: y, a = True;
+                y = !a && !foo(x);
+                Return;
+            EndBody.
+        Function: foo
+            Parameter: x
+            Body:
+                Return False;
+            EndBody."""
+        expect = str(TypeCannotBeInferred(Assign(Id("y"), BinaryOp("&&", UnaryOp("!",Id("a")), UnaryOp("!", CallExpr(Id("foo"), [Id("x")]))))))
+        self.assertTrue(TestChecker.test(input,expect,436))
+
+    def test_type_cannot_be_inferred_4(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Parameter: x
+            Body:
+                Var: y, a = True;
+                y = !a && foo(x)[1];
+                Return;
+            EndBody.
+        Function: foo
+            Parameter: x
+            Body:
+                Return {True, False};
+            EndBody."""
+        expect = str(TypeCannotBeInferred(Assign(Id("y"), BinaryOp("&&", UnaryOp("!",Id("a")), ArrayCell(CallExpr(Id("foo"), [Id("x")]), [IntLiteral(1)])))))
+        self.assertTrue(TestChecker.test(input,expect,437))

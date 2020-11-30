@@ -1,0 +1,14 @@
+
+        Var: x;
+        Function: main
+            Parameter: x
+            Body:
+                Var: y, a = True;
+                y = !a && !foo(x);
+                Return;
+            EndBody.
+        Function: foo
+            Parameter: x
+            Body:
+                Return False;
+            EndBody.

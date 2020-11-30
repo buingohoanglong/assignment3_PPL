@@ -170,6 +170,9 @@ class StaticChecker(BaseVisitor):
     def visitAssign(self,ast, c):
         rtype = self.visit(ast.rhs, c)
         ltype = self.visit(ast.lhs, c)
+        if ltype == TypeCannotInferred() or rtype == TypeCannotInferred():
+            raise TypeCannotBeInferred(ast)
+
         if ltype == Unknown() and rtype == Unknown():
             raise TypeCannotBeInferred(ast)
         elif ltype == Unknown() and rtype != Unknown():
@@ -245,6 +248,8 @@ class StaticChecker(BaseVisitor):
     def visitBinaryOp(self,ast, c):
         ltype = self.visit(ast.left, c)
         rtype = self.visit(ast.right, c)
+        if ltype == TypeCannotInferred() or rtype == TypeCannotInferred():
+            return TypeCannotInferred() # return message to containing stmt (raise TypeCannotBeInferred at containing stmt)
 
         typedict = {}
         typedict.update({operator: {'operand_type': IntType(), 'return_type': IntType()} for operator in ['+', '-', '*', '\\', '%']})
@@ -286,6 +291,9 @@ class StaticChecker(BaseVisitor):
 
     def visitUnaryOp(self,ast, c):
         exptype = self.visit(ast.body, c)
+        if exptype == TypeCannotInferred():
+            return TypeCannotInferred() # return message to containing stmt (raise TypeCannotBeInferred at containing stmt)
+
         typedict = {
             '-': {'operand_type': IntType(), 'return_type': IntType()},
             '-.': {'operand_type': FloatType(), 'return_type': FloatType()},
@@ -365,6 +373,9 @@ class StaticChecker(BaseVisitor):
     # return innermost eletype
     def visitArrayCell(self,ast, c):
         arrtype = self.visit(ast.arr, c)
+        if arrtype == TypeCannotInferred():
+            return TypeCannotInferred() # return message to containing stmt (raise TypeCannotBeInferred at containing stmt)
+
         if len(arrtype.dimen) != len(ast.idx):
             raise TypeMismatchInExpression(ast)
         for index in ast.idx:
