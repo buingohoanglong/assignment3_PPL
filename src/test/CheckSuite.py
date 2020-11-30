@@ -430,6 +430,20 @@ class CheckSuite(unittest.TestCase):
         input = """
         Var: x;
         Function: main
+            Parameter: x[2][3]
+            Body:
+                Var: y[2][3];
+                x = y;
+                Return;
+            EndBody."""
+        expect = str(TypeCannotBeInferred(Assign(Id("x"), Id("y"))))
+        self.assertTrue(TestChecker.test(input,expect,435))
+
+    def test_type_cannot_be_inferred_3(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
             Parameter: x
             Body:
                 Var: y, a = 10;
@@ -442,9 +456,9 @@ class CheckSuite(unittest.TestCase):
                 Return 1;
             EndBody."""
         expect = str(TypeCannotBeInferred(Assign(Id("y"), BinaryOp("+", Id("a"), CallExpr(Id("foo"), [Id("x")])))))
-        self.assertTrue(TestChecker.test(input,expect,435))
+        self.assertTrue(TestChecker.test(input,expect,436))
 
-    def test_type_cannot_be_inferred_3(self):
+    def test_type_cannot_be_inferred_4(self):
         """Simple program: main"""
         input = """
         Var: x;
@@ -461,9 +475,9 @@ class CheckSuite(unittest.TestCase):
                 Return False;
             EndBody."""
         expect = str(TypeCannotBeInferred(Assign(Id("y"), BinaryOp("&&", UnaryOp("!",Id("a")), UnaryOp("!", CallExpr(Id("foo"), [Id("x")]))))))
-        self.assertTrue(TestChecker.test(input,expect,436))
+        self.assertTrue(TestChecker.test(input,expect,437))
 
-    def test_type_cannot_be_inferred_4(self):
+    def test_type_cannot_be_inferred_5(self):
         """Simple program: main"""
         input = """
         Var: x;
@@ -480,4 +494,21 @@ class CheckSuite(unittest.TestCase):
                 Return {True, False};
             EndBody."""
         expect = str(TypeCannotBeInferred(Assign(Id("y"), BinaryOp("&&", UnaryOp("!",Id("a")), ArrayCell(CallExpr(Id("foo"), [Id("x")]), [IntLiteral(1)])))))
-        self.assertTrue(TestChecker.test(input,expect,437))
+        self.assertTrue(TestChecker.test(input,expect,438))
+
+    def test_type_cannot_be_inferred_6(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Body:
+                foo(x);
+                Return;
+            EndBody.
+        Function: foo
+            Parameter: x
+            Body:
+                Return;
+            EndBody."""
+        expect = str(TypeCannotBeInferred(CallStmt(Id("foo"), [Id("x")])))
+        self.assertTrue(TestChecker.test(input,expect,439))

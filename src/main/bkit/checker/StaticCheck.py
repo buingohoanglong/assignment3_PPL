@@ -243,7 +243,56 @@ class StaticChecker(BaseVisitor):
         pass
 
     def visitCallStmt(self,ast, c):
-        pass
+        if ast.method.name not in c:
+            raise Undeclared(Function(), ast.method.name)
+        if not isinstance(c[ast.method.name], MType):
+            raise Undeclared(Function(), ast.method.name)
+        if len(ast.param) != len(c[ast.method.name].intype):
+            raise TypeMismatchInStatement(ast)
+        for i in range(len(ast.param)):
+            # type inference
+            type1 = c[ast.method.name].intype[i]    # param type
+            type2 = self.visit(ast.param[i], c)     # argument type
+            if type1 == Unknown() and type2 != Unknown():  # param is Id (param cannot be CallExpr)
+                if isinstance(type2, ArrayType):
+                    raise TypeMismatchInStatement(ast)
+                c[ast.method.name].intype[i] = type2
+            elif type1 != Unknown() and type2 == Unknown():  # arg is Id or CallExpr
+                if isinstance(type1, ArrayType):
+                    raise TypeMismatchInStatement(ast)
+                if isinstance(ast.param[i], Id):
+                    c[ast.param[i].name] = type1
+                elif isinstance(ast.param[i], CallExpr):
+                    c[ast.param[i].method.name].restype = type1
+            elif type1 == Unknown() and type2 == Unknown():
+                raise TypeCannotBeInferred(ast)
+            elif type1 != Unknown() and type2 != Unknown():
+                if isinstance(type1, ArrayType) and not isinstance(type2, ArrayType):
+                    raise TypeMismatchInStatement(ast)
+                elif not isinstance(type1, ArrayType) and isinstance(type2, ArrayType):
+                    raise TypeMismatchInStatement(ast)
+                elif not isinstance(type1, ArrayType) and not isinstance(type2, ArrayType):
+                    if type1 != type2:
+                        raise TypeMismatchInStatement(ast)
+                elif isinstance(type1, ArrayType) and isinstance(type2, ArrayType):
+                    if type1.dimen != type2.dimen:
+                        raise TypeMismatchInStatement(ast)
+                    if type1.eletype == Unknown() and type2.eletype == Unknown():
+                        return TypeCannotBeInferred(ast)
+                    elif type1.eletype == Unknown() and type2.eletype != Unknown(): # type1.eletype is Int/Float/Bool/String Type
+                        c[ast.method.name].intype[i].eletype = type2.eletype
+                    elif type1.eletype != Unknown() and type2.eletype == Unknown(): # ast.param[i]
+                        if isinstance(ast.param[i], Id):
+                            c[ast.param[i].name].eletype = type1.eletype
+                        elif isinstance(ast.param[i], CallExpr):
+                            c[ast.param[i].method.name].restype.eletype = type1.eletype
+                    elif type1.eletype != Unknown() and type2.eletype != Unknown():
+                        if type1.eletype != type2.eletype:
+                            raise TypeMismatchInStatement(ast)
+        
+        if c[ast.method.name].restype == Unknown():
+            c[ast.method.name].restype = VoidType()
+
 
     def visitBinaryOp(self,ast, c):
         ltype = self.visit(ast.left, c)

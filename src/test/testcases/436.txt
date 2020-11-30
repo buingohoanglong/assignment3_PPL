@@ -3,12 +3,12 @@
         Function: main
             Parameter: x
             Body:
-                Var: y, a = True;
-                y = !a && !foo(x);
+                Var: y, a = 10;
+                y = a + foo(x);
                 Return;
             EndBody.
         Function: foo
             Parameter: x
             Body:
-                Return False;
+                Return 1;
             EndBody.
