@@ -30,26 +30,32 @@ from dataclasses import dataclass
 # print(a)
 # print(foo(a))
 
-@dataclass
-class B:
-    value: float = 1.1
-    _type: str = 'float'
+# @dataclass
+# class B:
+#     value: float = 1.1
+#     _type: str = 'float'
 
-@dataclass
-class A:
-    value: int = 1
-    _type: B = B()
+# @dataclass
+# class A:
+#     value: int = 1
+#     _type: B = B()
 
 
 
-# a = [A(), B()]
-# def foo(a):
-#     return a[0]
-# b = foo(a)
-# b.value = 10
-# print(b)
-# print(a)
-typedict = {}
-typedict.update({operator: {'operand_type': B(), 'return_type': B()} for operator in ['+', '-', '*', '\\', '\\%']})
+# # a = [A(), B()]
+# # def foo(a):
+# #     return a[0]
+# # b = foo(a)
+# # b.value = 10
+# # print(b)
+# # print(a)
+# typedict = {}
+# typedict.update({operator: {'operand_type': B(), 'return_type': B()} for operator in ['+', '-', '*', '\\', '\\%']})
 
-print(typedict)
+# print(typedict)
+
+def foo():
+    print(1)
+
+x = foo()
+print(x)

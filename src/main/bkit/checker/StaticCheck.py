@@ -139,7 +139,10 @@ class StaticChecker(BaseVisitor):
         # visit statement
         total_envir = {**c, **local_envir}
         for stmt in ast.body[1]:
-            self.visit(stmt, total_envir)
+            error = self.visit(stmt, total_envir)
+            if isinstance(error, Break) or isinstance(error, Continue):
+                raise NotInLoop(error)
+
             # type inference for function parameters
             for paramname, paramindex in zip(param_envir, range(len(param_envir))):
                 type1 = total_envir[paramname]
@@ -297,10 +300,10 @@ class StaticChecker(BaseVisitor):
 
 
     def visitBreak(self,ast, c):
-        pass
+        return Break()
 
     def visitContinue(self,ast, c):
-        pass
+        return Continue()
 
     def visitReturn(self,ast, c):
         pass
