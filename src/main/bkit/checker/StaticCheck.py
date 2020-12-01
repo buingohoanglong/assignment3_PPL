@@ -167,7 +167,7 @@ class StaticChecker(BaseVisitor):
             if name not in local_envir:
                 c[name] = total_envir[name]
 
-    def visitAssign(self,ast, c):
+    def visitAssign(self,ast, c):   # left hand side can be in any type except VoidTy (what about MType ???)
         rtype = self.visit(ast.rhs, c)
         ltype = self.visit(ast.lhs, c)
         if ltype == TypeCannotInferred() or rtype == TypeCannotInferred():
@@ -225,7 +225,76 @@ class StaticChecker(BaseVisitor):
         pass
 
     def visitFor(self,ast, c):
-        pass
+        # visit scalar variable
+        indextype = self.visit(ast.idx1, c)
+        if indextype == Unknown():
+            indextype = IntType()
+            c[ast.idx1.name] = indextype
+        if indextype != Unknown():
+            raise TypeMismatchInStatement(ast)
+
+        # visit initExpr (expr1)
+        exptype1 = self.visit(ast.expr1, c)
+        if exptype1 == TypeCannotInferred():
+            raise TypeCannotBeInferred(ast)
+
+        if exptype1 == Unknown():    # exp is Id, CallExpr, ArrayCell
+            exptype1 = IntType()
+            if isinstance(ast.expr1, Id):
+                c[ast.expr1.name] = exptype1
+            elif isinstance(ast.expr1, CallExpr):
+                c[ast.expr1.method.name].restype = exptype1
+            elif isinstance(ast.expr1, ArrayCell):
+                if isinstance(ast.expr1.arr, Id):
+                    c[ast.expr1.arr.name].eletype = exptype1
+                elif isinstance(ast.expr1.arr, CallExpr):
+                    c[ast.expr1.arr.method.name].restype = exptype1
+        if exptype1 != IntType():
+            raise TypeMismatchInStatement(ast)     
+
+        # visit conditionExpr (expr2)
+        if exptype2 == Unknown():    # exp is Id, CallExpr, ArrayCell
+            exptype2 = BoolType()
+            if isinstance(ast.expr2, Id):
+                c[ast.expr2.name] = exptype2
+            elif isinstance(ast.expr2, CallExpr):
+                c[ast.expr2.method.name].restype = exptype2
+            elif isinstance(ast.expr2, ArrayCell):
+                if isinstance(ast.expr2.arr, Id):
+                    c[ast.expr2.arr.name].eletype = exptype2
+                elif isinstance(ast.expr2.arr, CallExpr):
+                    c[ast.expr2.arr.method.name].restype = exptype2
+        if exptype2 != BoolType():
+            raise TypeMismatchInStatement(ast)   
+
+        # visit updateExpr(expr3)
+        if exptype3 == Unknown():    # exp is Id, CallExpr, ArrayCell
+            exptype3 = IntType()
+            if isinstance(ast.expr3, Id):
+                c[ast.expr3.name] = exptype3
+            elif isinstance(ast.expr3, CallExpr):
+                c[ast.expr3.method.name].restype = exptype3
+            elif isinstance(ast.expr3, ArrayCell):
+                if isinstance(ast.expr3.arr, Id):
+                    c[ast.expr3.arr.name].eletype = exptype3
+                elif isinstance(ast.expr3.arr, CallExpr):
+                    c[ast.expr3.arr.method.name].restype = exptype3
+        if exptype3 != IntType():
+            raise TypeMismatchInStatement(ast)    
+
+        # visit loop (For body)
+        local_envir = {}
+        for vardecl in ast.loop[0]:
+            self.visit(vardecl, local_envir)
+        total_envir = {**c, **local_envir}
+        for stmt in ast.loop[1]:
+            self.visit(stmt, total_envir)
+
+        # update outer environment
+        for name in c:
+            if name not in local_envir:
+                c[name] = total_envir[name]
+
 
     def visitBreak(self,ast, c):
         pass
@@ -237,10 +306,70 @@ class StaticChecker(BaseVisitor):
         pass
 
     def visitDowhile(self,ast, c):
-        pass
+        # visit expression
+        exptype = self.visit(ast.exp, c)
+        if exptype == TypeCannotInferred():
+            raise TypeCannotBeInferred(ast)
+
+        if exptype == Unknown():    # exp is Id, CallExpr, ArrayCell
+            exptype = BoolType()
+            if isinstance(ast.exp, Id):
+                c[ast.exp.name] = exptype
+            elif isinstance(ast.exp, CallExpr):
+                c[ast.exp.method.name].restype = exptype
+            elif isinstance(ast.exp, ArrayCell):
+                if isinstance(ast.exp.arr, Id):
+                    c[ast.exp.arr.name].eletype = exptype
+                elif isinstance(ast.exp.arr, CallExpr):
+                    c[ast.exp.arr.method.name].restype = exptype
+        if exptype != BoolType():
+            raise TypeMismatchInStatement(ast)
+
+        # visit loop (DoWhile body)
+        local_envir = {}
+        for vardecl in ast.sl[0]:
+            self.visit(vardecl, local_envir)
+        total_envir = {**c, **local_envir}
+        for stmt in ast.sl[1]:
+            self.visit(stmt, total_envir)
+
+        # update outer environment
+        for name in c:
+            if name not in local_envir:
+                c[name] = total_envir[name]
 
     def visitWhile(self,ast, c):
-        pass
+        # visit expression
+        exptype = self.visit(ast.exp, c)
+        if exptype == TypeCannotInferred():
+            raise TypeCannotBeInferred(ast)
+
+        if exptype == Unknown():    # exp is Id, CallExpr, ArrayCell
+            exptype = BoolType()
+            if isinstance(ast.exp, Id):
+                c[ast.exp.name] = exptype
+            elif isinstance(ast.exp, CallExpr):
+                c[ast.exp.method.name].restype = exptype
+            elif isinstance(ast.exp, ArrayCell):
+                if isinstance(ast.exp.arr, Id):
+                    c[ast.exp.arr.name].eletype = exptype
+                elif isinstance(ast.exp.arr, CallExpr):
+                    c[ast.exp.arr.method.name].restype = exptype
+        if exptype != BoolType():
+            raise TypeMismatchInStatement(ast)
+
+        # visit loop (While body)
+        local_envir = {}
+        for vardecl in ast.sl[0]:
+            self.visit(vardecl, local_envir)
+        total_envir = {**c, **local_envir}
+        for stmt in ast.sl[1]:
+            self.visit(stmt, total_envir)
+
+        # update outer environment
+        for name in c:
+            if name not in local_envir:
+                c[name] = total_envir[name]
 
     def visitCallStmt(self,ast, c):
         if ast.method.name not in c:
@@ -292,6 +421,8 @@ class StaticChecker(BaseVisitor):
         
         if c[ast.method.name].restype == Unknown():
             c[ast.method.name].restype = VoidType()
+        if c[ast.method.name].restype != VoidType():
+            raise TypeMismatchInStatement(ast)
 
 
     def visitBinaryOp(self,ast, c):
@@ -432,12 +563,16 @@ class StaticChecker(BaseVisitor):
             if isinstance(indextype, ArrayType):
                 raise TypeMismatchInExpression(ast)
             if indextype == Unknown():  # index is Id or CallExpr or ArrayCell
+                indextype = IntType()
                 if isinstance(index, Id):
-                    c[index.name] = IntType()
+                    c[index.name] = indextype
                 elif isinstance(index, CallExpr):
-                    c[index.method.name].restype = IntType()
+                    c[index.method.name].restype = indextype
                 elif isinstance(index, ArrayCell):
-                    c[index.arr.name].eletype = IntType()
+                    if isinstance(index.arr, Id):
+                        c[index.arr.name].eletype = indextype
+                    elif isinstance(index.arr, CallExpr):
+                        c[index.arr.method.name].restype = indextype
             if indextype != IntType():
                 raise TypeMismatchInExpression(ast)
         return self.visit(ast.arr, c)
