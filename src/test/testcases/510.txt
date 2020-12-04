@@ -1,0 +1,15 @@
+
+        Var: x;
+        Function: main
+            Body:
+                While (True) Do
+                    If (True) Then
+                        If (True) Then Break;
+                        Else Break;
+                        EndIf.
+                        Break;
+                    Else Break;
+                    EndIf.
+                EndWhile.
+                Return;
+            EndBody.

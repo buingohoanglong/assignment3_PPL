@@ -2,10 +2,10 @@
         Var: x;
         Function: main
             Body:
-                Var: x,y,z;
-                Var: t, m, n, k = True;
-                t = x * y - z * (x \ 2 + 1);
-                k = (m =/= n) && ( m >=. n) || (m <. n);
-                x = t >= z;
+                Var: x, y = 1e3, z = 10;
+                z = - z;
+                x = !!x;
+                y = -. -. -.y;
+                x = !(-x);
                 Return;
             EndBody.

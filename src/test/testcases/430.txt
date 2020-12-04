@@ -2,10 +2,8 @@
         Var: x;
         Function: main
             Body:
-                Var: x, y = 1e3, z = 10;
-                z = - z;
-                x = !!x;
-                y = -. -. -.y;
-                x = !(-x);
+                Var: x[3][2] = { {6.6,5.5}, {4.4,3.3}, {2.2,1.1} };
+                Var: y[3][2] = { {1,2}, {3,4}, {5,6} };
+                x = y;
                 Return;
             EndBody.

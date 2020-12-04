@@ -1,1 +1,1 @@
-Type Mismatch In Expression: ArrayCell(Id(x),[IntLiteral(2)])
+Type Mismatch In Statement: Assign(Id(x),Id(y))

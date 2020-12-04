@@ -1,1 +1,1 @@
-Type Cannot Be Inferred: Assign(Id(x),Id(y))
+Type Mismatch In Expression: BinaryOp(+,UnaryOp(!,Id(x)),IntLiteral(1))

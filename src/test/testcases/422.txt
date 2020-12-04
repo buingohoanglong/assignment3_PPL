@@ -2,6 +2,7 @@
         Var: x;
         Function: main
             Body:
-                Var: foo;
-                x = foo(1);
+                Var: y;
+                x = y()[1] + 1;
+                Return;
             EndBody.

@@ -1,0 +1,1 @@
+Type Cannot Be Inferred: Assign(Id(y),BinaryOp(&&,UnaryOp(!,Id(a)),UnaryOp(!,CallExpr(Id(foo),[Id(x)]))))

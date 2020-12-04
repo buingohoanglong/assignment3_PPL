@@ -1,8 +1,6 @@
 
         Var: x;
         Function: main
-            Parameter: x[2][3], y
             Body:
-                x = {1,2,3};
-                Return;
+                x = foo(1);
             EndBody.

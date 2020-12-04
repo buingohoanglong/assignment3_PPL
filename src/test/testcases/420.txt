@@ -8,5 +8,5 @@
             EndBody.        
         Function: main
             Body:
-                y = foo(x) + 1;
+                y = foo(x) +. 2.2;
             EndBody.

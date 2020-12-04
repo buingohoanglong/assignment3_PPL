@@ -138,10 +138,13 @@ class StaticChecker(BaseVisitor):
         
         # visit statement
         total_envir = {**c, **local_envir}
+        current_function = {ast.name.name : total_envir[ast.name.name]}
+        del total_envir[ast.name.name]
+        total_envir = {**total_envir, **current_function}   # append current function to the end of dictionary
         for stmt in ast.body[1]:
-            error = self.visit(stmt, total_envir)
-            if isinstance(error, Break) or isinstance(error, Continue):
-                raise NotInLoop(error)
+            result = self.visit(stmt, total_envir)
+            if isinstance(result, Break) or isinstance(result, Continue):
+                raise NotInLoop(result)
 
             # type inference for function parameters
             for paramname, paramindex in zip(param_envir, range(len(param_envir))):
@@ -170,11 +173,13 @@ class StaticChecker(BaseVisitor):
             if name not in local_envir:
                 c[name] = total_envir[name]
 
-    def visitAssign(self,ast, c):   # left hand side can be in any type except VoidTy (what about MType ???)
+    def visitAssign(self,ast, c):   # left hand side can be in any type except VoidType (what about MType ???)
         rtype = self.visit(ast.rhs, c)
         ltype = self.visit(ast.lhs, c)
         if ltype == TypeCannotInferred() or rtype == TypeCannotInferred():
             raise TypeCannotBeInferred(ast)
+        if ltype == VoidType() or rtype == VoidType():
+            raise TypeMismatchInStatement(ast)
 
         if ltype == Unknown() and rtype == Unknown():
             raise TypeCannotBeInferred(ast)
@@ -223,9 +228,69 @@ class StaticChecker(BaseVisitor):
             elif not isinstance(ltype, ArrayType) and not isinstance(rtype, ArrayType):
                 if ltype != rtype:
                     raise TypeMismatchInStatement(ast)
+        
 
     def visitIf(self,ast, c):
-        pass
+        result = None   # used to detect not in loop
+        current_function_name = list(c.keys())[-1]
+        for ifthenstmt in ast.ifthenStmt:
+            # visit condition expression
+            exptype = self.visit(ifthenstmt[0], c)
+            if exptype == TypeCannotInferred():
+                raise TypeCannotBeInferred(ast)
+
+            if exptype == Unknown():    # exp is Id, CallExpr, ArrayCell
+                exptype = BoolType()
+                if isinstance(ast.exp, Id):
+                    c[ast.exp.name] = exptype
+                elif isinstance(ast.exp, CallExpr):
+                    c[ast.exp.method.name].restype = exptype
+                elif isinstance(ast.exp, ArrayCell):
+                    if isinstance(ast.exp.arr, Id):
+                        c[ast.exp.arr.name].eletype = exptype
+                    elif isinstance(ast.exp.arr, CallExpr):
+                        c[ast.exp.arr.method.name].restype = exptype
+            if exptype != BoolType():
+                raise TypeMismatchInStatement(ast)
+
+            # visit if/elif local var declare
+            local_envir = {}
+            for vardecl in ifthenstmt[1]:
+                self.visit(vardecl, local_envir)
+
+            # visit if/elif statement
+            total_envir = {**c, **local_envir}
+            current_function = {current_function_name : total_envir[current_function_name]}
+            del total_envir[current_function_name]
+            total_envir = {**total_envir, **current_function}   # append current function to the end of dictionary
+            for stmt in ifthenstmt[2]:
+                result = self.visit(stmt, total_envir)
+    
+            # update outer environment
+            for name in c:
+                if name not in local_envir:
+                    c[name] = total_envir[name]
+        
+        # visit else local var declare
+        local_envir = {}
+        for vardecl in ast.elseStmt[0]:
+            self.visit(vardecl, local_envir)
+
+        # visit else statement
+        total_envir = {**c, **local_envir}
+        current_function = {current_function_name : total_envir[current_function_name]}
+        del total_envir[current_function_name]
+        total_envir = {**total_envir, **current_function}   # append current function to the end of dictionary
+        for stmt in ast.elseStmt[1]:
+            result = self.visit(stmt, total_envir)
+        
+        # update outer environment
+        for name in c:
+            if name not in local_envir:
+                c[name] = total_envir[name]
+
+        return result
+    
 
     def visitFor(self,ast, c):
         # visit scalar variable
@@ -285,11 +350,17 @@ class StaticChecker(BaseVisitor):
         if exptype3 != IntType():
             raise TypeMismatchInStatement(ast)    
 
-        # visit loop (For body)
+        # visit local (For body) var declare
         local_envir = {}
         for vardecl in ast.loop[0]:
             self.visit(vardecl, local_envir)
+
+        # visit local statement
+        current_function_name = list(c.keys())[-1]
         total_envir = {**c, **local_envir}
+        current_function = {current_function_name : total_envir[current_function_name]}
+        del total_envir[current_function_name]
+        total_envir = {**total_envir, **current_function}   # append current function to the end of dictionary
         for stmt in ast.loop[1]:
             self.visit(stmt, total_envir)
 
@@ -306,7 +377,58 @@ class StaticChecker(BaseVisitor):
         return Continue()
 
     def visitReturn(self,ast, c):
-        pass
+        returntype = VoidType() if ast.expr == None else self.visit(ast.expr, c)
+        current_function_name = list(c.keys())[-1]
+        current_returntype = c[current_function_name].restype
+        if returntype == VoidType() and ast.expr != None:
+            raise TypeMismatchInStatement(ast)
+        if current_returntype == VoidType() and ast.expr != None:
+            raise TypeMismatchInStatement(ast)
+
+        if current_returntype == Unknown() and returntype == Unknown():
+            raise TypeCannotBeInferred(ast)
+        elif current_returntype == Unknown() and returntype != Unknown():
+            if isinstance(returntype, ArrayType) and returntype.eletype == Unknown():
+                raise TypeMismatchInStatement(ast)
+            c[current_function_name].restype = returntype
+        elif current_returntype != Unknown() and returntype == Unknown():
+            if isinstance(current_returntype, ArrayType):
+                if isinstance(ast.expr, CallExpr):
+                    c[ast.expr.method.name].restype = current_returntype
+                else:
+                    raise TypeMismatchInStatement(ast)
+            else:
+                if isinstance(ast.expr, Id):
+                    c[ast.expr.name] = current_returntype
+                elif isinstance(ast.expr, ArrayCell):
+                    if isinstance(ast.expr.arr, Id):
+                        c[ast.expr.arr.name].eletype = current_returntype
+                    elif isinstance(ast.expr.arr, CallExpr):
+                        c[ast.expr.arr.method.name].restype.eletype = current_returntype
+                elif isinstance(ast.expr, CallExpr):
+                    c[ast.expr.method.name].restype = current_returntype
+        elif current_returntype != Unknown() and returntype != Unknown():
+            if isinstance(current_returntype, ArrayType) and not isinstance(returntype, ArrayType):
+                raise TypeMismatchInStatement(ast)
+            elif not isinstance(current_returntype, ArrayType) and isinstance(returntype, ArrayType):
+                raise TypeMismatchInStatement(ast)
+            elif isinstance(current_returntype, ArrayType) and isinstance(returntype, ArrayType):
+                if current_returntype.dimen != returntype.dimen:
+                    raise TypeMismatchInStatement(ast)
+                if returntype.eletype == Unknown():
+                    if isinstance(ast.expr, Id):
+                        c[ast.expr.name].eletype = current_returntype.eletype
+                    elif isinstance(ast.expr, CallExpr):
+                        c[ast.expr.method.name].restype.eletype = current_returntype.eletype
+                else:
+                    if current_returntype.eletype != returntype.eletype:
+                        raise TypeMismatchInStatement(ast)
+            elif not isinstance(current_returntype, ArrayType) and not isinstance(returntype, ArrayType):
+                if current_returntype != returntype:
+                    raise TypeMismatchInStatement(ast)
+        
+
+
 
     def visitDowhile(self,ast, c):
         # visit expression
@@ -328,11 +450,17 @@ class StaticChecker(BaseVisitor):
         if exptype != BoolType():
             raise TypeMismatchInStatement(ast)
 
-        # visit loop (DoWhile body)
+        # visit local (DoWhile body) var declare
         local_envir = {}
         for vardecl in ast.sl[0]:
             self.visit(vardecl, local_envir)
+
+        # visit local statement
+        current_function_name = list(c.keys())[-1]
         total_envir = {**c, **local_envir}
+        current_function = {current_function_name : total_envir[current_function_name]}
+        del total_envir[current_function_name]
+        total_envir = {**total_envir, **current_function}   # append current function to the end of dictionary
         for stmt in ast.sl[1]:
             self.visit(stmt, total_envir)
 
@@ -340,6 +468,7 @@ class StaticChecker(BaseVisitor):
         for name in c:
             if name not in local_envir:
                 c[name] = total_envir[name]
+
 
     def visitWhile(self,ast, c):
         # visit expression
@@ -361,11 +490,17 @@ class StaticChecker(BaseVisitor):
         if exptype != BoolType():
             raise TypeMismatchInStatement(ast)
 
-        # visit loop (While body)
+        # visit local (While body) var declare
         local_envir = {}
         for vardecl in ast.sl[0]:
             self.visit(vardecl, local_envir)
+
+        # visit local statement
+        current_function_name = list(c.keys())[-1]
         total_envir = {**c, **local_envir}
+        current_function = {current_function_name : total_envir[current_function_name]}
+        del total_envir[current_function_name]
+        total_envir = {**total_envir, **current_function}   # append current function to the end of dictionary
         for stmt in ast.sl[1]:
             self.visit(stmt, total_envir)
 
@@ -583,6 +718,8 @@ class StaticChecker(BaseVisitor):
 
     def visitId(self,ast, c):
         if ast.name not in c:
+            raise Undeclared(Identifier(), ast.name)
+        if isinstance(c[ast.name], MType):
             raise Undeclared(Identifier(), ast.name)
         return c[ast.name]
 
