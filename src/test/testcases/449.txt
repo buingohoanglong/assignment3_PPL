@@ -1,0 +1,16 @@
+
+        Var: x;
+        Function: foo
+            Parameter: x[3]
+            Body:
+                x = {4,5,6};
+                Return;
+            EndBody.
+        Function: main
+            Body:
+                foo(goo());
+            EndBody.
+        Function: goo
+            Body:
+                Return {1,2,3,4};
+            EndBody.

@@ -454,7 +454,7 @@ class CheckSuite(unittest.TestCase):
         expect = str(TypeMismatchInStatement(Assign(Id("x"), BinaryOp(">=", Id("t"), Id("z")))))
         self.assertTrue(TestChecker.test(input,expect,436))
 
-        # Test type cannot be inferred
+    # Test type cannot be inferred
     def test_type_cannot_be_inferred_1(self):
         """Simple program: main"""
         input = """
@@ -662,6 +662,112 @@ class CheckSuite(unittest.TestCase):
         expect = str(TypeMismatchInStatement(Return(IntLiteral(1))))
         self.assertTrue(TestChecker.test(input,expect,448))
 
+    def test_returntype_4(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: foo
+            Parameter: x[3]
+            Body:
+                x = {4,5,6};
+                Return;
+            EndBody.
+        Function: main
+            Body:
+                foo(goo());
+            EndBody.
+        Function: goo
+            Body:
+                Return {1,2,3,4};
+            EndBody."""
+        expect = str(TypeMismatchInStatement(Return(ArrayLiteral([IntLiteral(1),IntLiteral(2),IntLiteral(3),IntLiteral(4)]))))
+        self.assertTrue(TestChecker.test(input,expect,449))
+
+    def test_returntype_5(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: foo
+            Parameter: x[3]
+            Body:
+                x = {4,5,6};
+                Return 1;
+            EndBody.
+        Function: main
+            Body:
+                x = foo(goo()) + 1;
+            EndBody.
+        Function: goo
+            Body:
+                Return {1,2,3,4};
+            EndBody."""
+        expect = str(TypeMismatchInStatement(Return(ArrayLiteral([IntLiteral(1),IntLiteral(2),IntLiteral(3),IntLiteral(4)]))))
+        self.assertTrue(TestChecker.test(input,expect,450))
+
+    def test_returntype_6(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: foo
+            Parameter: x[3]
+            Body:
+                While (True) Do
+                    x = {4,5,6};
+                    Return 1;
+                EndWhile.
+            EndBody.
+        Function: main
+            Body:
+                x = foo(goo()) +. 1.1;
+            EndBody.
+        Function: goo
+            Body:
+                Return {1,2,3};
+            EndBody."""
+        expect = str(TypeMismatchInExpression(BinaryOp("+.", CallExpr(Id("foo"), [CallExpr(Id("goo"), [])]), FloatLiteral(1.1))))
+        self.assertTrue(TestChecker.test(input,expect,451))
+
+    def test_returntype_7(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: foo
+            Parameter: x[3]
+            Body:
+                While (True) Do
+                    x = {4,5,6};
+                    Return 1;
+                EndWhile.
+            EndBody.
+        Function: main
+            Body:
+                x = foo(goo()) + 1;
+            EndBody.
+        Function: goo
+            Body:
+                If (1 > 2) Then Return {1,2,3};
+                Else Return {1.1, 2.2, 3.3};
+                EndIf.
+            EndBody."""
+        expect = str(TypeMismatchInStatement(Return(ArrayLiteral([FloatLiteral(1.1), FloatLiteral(2.2), FloatLiteral(3.3)]))))
+        self.assertTrue(TestChecker.test(input,expect,452))
+
+    # # Test assign
+    # def test_assign_1(self):
+    #     """Simple program: main"""
+    #     input = """
+    #     Var: x;
+    #     Function: main
+    #         Body:
+    #             x = x + foo(x);
+    #         EndBody.
+    #     Function: foo
+    #         Parameter: x
+    #         Body:
+    #             Return 1;
+    #         EndBody."""
+    #     expect = str("")
+    #     self.assertTrue(TestChecker.test(input,expect,451))
 
 
 
