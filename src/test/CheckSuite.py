@@ -752,22 +752,22 @@ class CheckSuite(unittest.TestCase):
         expect = str(TypeMismatchInStatement(Return(ArrayLiteral([FloatLiteral(1.1), FloatLiteral(2.2), FloatLiteral(3.3)]))))
         self.assertTrue(TestChecker.test(input,expect,452))
 
-    # # Test assign
-    # def test_assign_1(self):
-    #     """Simple program: main"""
-    #     input = """
-    #     Var: x;
-    #     Function: main
-    #         Body:
-    #             x = x + foo(x);
-    #         EndBody.
-    #     Function: foo
-    #         Parameter: x
-    #         Body:
-    #             Return 1;
-    #         EndBody."""
-    #     expect = str("")
-    #     self.assertTrue(TestChecker.test(input,expect,451))
+    # Test assign
+    def test_assign_1(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Body:
+                x = x + foo(x);
+            EndBody.
+        Function: foo
+            Parameter: x
+            Body:
+                Return 1;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,453))
 
 
 

@@ -174,8 +174,8 @@ class StaticChecker(BaseVisitor):
                 c[name] = total_envir[name]
 
     def visitAssign(self,ast, c):   # left hand side can be in any type except VoidType (what about MType ???)
-        rtype = self.visit(ast.rhs, c)
         ltype = self.visit(ast.lhs, c)
+        rtype = self.visit(ast.rhs, c)
         if ltype == TypeCannotInferred() or rtype == TypeCannotInferred():
             raise TypeCannotBeInferred(ast)
         if ltype == VoidType() or rtype == VoidType():
@@ -412,25 +412,26 @@ class StaticChecker(BaseVisitor):
 
 
     def visitBinaryOp(self,ast, c):
-        ltype = self.visit(ast.left, c)
-        rtype = self.visit(ast.right, c)
-        if ltype == TypeCannotInferred() or rtype == TypeCannotInferred():
-            return TypeCannotInferred() # return message to containing stmt (raise TypeCannotBeInferred at containing stmt)
-
         typedict = {}
         typedict.update({operator: {'operand_type': IntType(), 'return_type': IntType()} for operator in ['+', '-', '*', '\\', '%']})
         typedict.update({operator: {'operand_type': IntType(), 'return_type': BoolType()} for operator in ['==', '!=', '<', '>', '<=', '>=']})
         typedict.update({operator: {'operand_type': FloatType(), 'return_type': FloatType()} for operator in ['+.', '-.', '*.', '\\.']})
         typedict.update({operator: {'operand_type': FloatType(), 'return_type': BoolType()} for operator in ['=/=', '<.', '>.', '<=.', '>=.']})
         typedict.update({operator: {'operand_type': BoolType(), 'return_type': BoolType()} for operator in ['&&', '||']})
-
+        
         # lhs type inference
-        if ltype == Unknown():  # lhs is Id or CallExpr(func call) or ArrayCell(Id or func call with dimension)
+        ltype = self.visit(ast.left, c)
+        if ltype == TypeCannotInferred():
+            return TypeCannotInferred()
+        if ltype == Unknown():
             ltype = typedict[ast.op]['operand_type']
             self.direct_infer(e=ast.left, inferred_type=ltype, c=c)
 
         # rhs type inference
-        if rtype == Unknown():  # rhs is Id or CallExpr(func call) or ArrayCell(Id or func call with dimension)
+        rtype = self.visit(ast.right, c)
+        if rtype == TypeCannotInferred():
+            return TypeCannotInferred() 
+        if rtype == Unknown():
             rtype = typedict[ast.op]['operand_type']
             self.direct_infer(e=ast.right, inferred_type=rtype, c=c)
 
@@ -440,19 +441,18 @@ class StaticChecker(BaseVisitor):
         return typedict[ast.op]['return_type']
 
 
-
     def visitUnaryOp(self,ast, c):
-        exptype = self.visit(ast.body, c)
-        if exptype == TypeCannotInferred():
-            return TypeCannotInferred() # return message to containing stmt (raise TypeCannotBeInferred at containing stmt)
-
         typedict = {
             '-': {'operand_type': IntType(), 'return_type': IntType()},
             '-.': {'operand_type': FloatType(), 'return_type': FloatType()},
             '!': {'operand_type': BoolType(), 'return_type': BoolType()}
         }
+
         # type inference
-        if exptype == Unknown():  # body is Id or CallExpr(func call) or ArrayCell(Id or func call with dimension)
+        exptype = self.visit(ast.body, c)
+        if exptype == TypeCannotInferred():
+            return TypeCannotInferred()
+        if exptype == Unknown():
             exptype = typedict[ast.op]['operand_type']
             self.direct_infer(e=ast.body, inferred_type=exptype, c=c)
 
