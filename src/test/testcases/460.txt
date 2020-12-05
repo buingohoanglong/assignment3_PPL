@@ -1,0 +1,12 @@
+
+        Function: goo
+            Parameter: x
+            Body:
+                Return True;
+            EndBody.
+        Function: main
+            Body:
+                Var: a, b;
+                b = goo(a < b);
+                Return;
+            EndBody.

@@ -1,0 +1,12 @@
+
+        Function: foo
+            Parameter: x
+            Body:
+                Return {True,False};
+            EndBody.
+        Function: main
+            Body:
+                Var: a,b;
+                foo(True)[0] = foo(1)[1];
+                Return;
+            EndBody.

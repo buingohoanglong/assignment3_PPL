@@ -752,6 +752,22 @@ class CheckSuite(unittest.TestCase):
         expect = str(TypeMismatchInStatement(Return(ArrayLiteral([FloatLiteral(1.1), FloatLiteral(2.2), FloatLiteral(3.3)]))))
         self.assertTrue(TestChecker.test(input,expect,452))
 
+    def test_returntype_8(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: foo
+            Parameter: x[3]
+            Body:
+                Return;
+            EndBody.
+        Function: main
+            Body:
+                Return foo({1,2,3});
+            EndBody."""
+        expect = str(TypeMismatchInStatement(Return(CallExpr(Id("foo"), [ArrayLiteral([IntLiteral(1), IntLiteral(2), IntLiteral(3)])]))))
+        self.assertTrue(TestChecker.test(input,expect,453))
+
     # Test assign
     def test_assign_1(self):
         """Simple program: main"""
@@ -767,202 +783,572 @@ class CheckSuite(unittest.TestCase):
                 Return 1;
             EndBody."""
         expect = str("")
-        self.assertTrue(TestChecker.test(input,expect,453))
+        self.assertTrue(TestChecker.test(input,expect,454))
 
-
-
-
-
-
-
-
-
-    # Test not in loop
-    def test_not_in_loop_1(self):
+    def test_assign_2(self):
         """Simple program: main"""
         input = """
         Var: x;
         Function: main
             Body:
-                Break;
+                x = foo(x) + x;
+            EndBody.
+        Function: foo
+            Parameter: x
+            Body:
+                Return 1;
+            EndBody."""
+        expect = str(TypeCannotBeInferred(Assign(Id("x"), BinaryOp("+", CallExpr(Id("foo"), [Id("x")]), Id("x")))))
+        self.assertTrue(TestChecker.test(input,expect,455))
+
+    def test_assign_3(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x, y[5] = {1,2,3,4,5};
+                x = y;
+            EndBody."""
+        expect = str(TypeMismatchInStatement(Assign(Id("x"), Id("y"))))
+        self.assertTrue(TestChecker.test(input,expect,456))
+
+    def test_assign_4(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[3], y[5] = {1,2,3,4,5};
+                x = y;
+            EndBody."""
+        expect = str(TypeMismatchInStatement(Assign(Id("x"), Id("y"))))
+        self.assertTrue(TestChecker.test(input,expect,457))
+
+    def test_assign_5(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[5] = {1.1, 2.2, 3.3, 4.4, 5.5}, y[5] = {1,2,3,4,5};
+                y = foo(1);
+                foo(2)[0] = x[3];
+                Return;
+            EndBody.
+        Function: foo
+            Parameter: x
+            Body:
+                Return {5,4,3,2,1};
+            EndBody.
+            """
+        expect = str(TypeMismatchInStatement(Assign(ArrayCell(CallExpr(Id("foo"), [IntLiteral(2)]), [IntLiteral(0)]), ArrayCell(Id("x"), [IntLiteral(3)]))))
+        self.assertTrue(TestChecker.test(input,expect,458))
+
+    def test_assign_6(self):
+        """Simple program: main"""
+        input = """
+        Var: x[5];
+        Function: main
+            Body:
+                Var: y[5] = {1,2,3,4,5};
+                x = {1.1, 2.2, 3.3, 4.4, 5.5};
+                y = foo(1);
+                foo(y[4] + 2)[0] = y[0] + 1;
+                Return;
+            EndBody.
+        Function: foo
+            Parameter: y
+            Body:
+                y = x[1];
+                Return {5,4,3,2,1};
+            EndBody.
+            """
+        expect = str(TypeMismatchInStatement(Assign(Id("y"), ArrayCell(Id("x"), [IntLiteral(1)]))))
+        self.assertTrue(TestChecker.test(input,expect,459))
+
+    def test_assign_7(self):
+        """Simple program: main"""
+        input = """
+        Function: goo
+            Parameter: x
+            Body:
+                Return True;
+            EndBody.
+        Function: main
+            Body:
+                Var: a, b;
+                b = goo(a < b);
                 Return;
             EndBody."""
-        expect = str(NotInLoop(Break()))
-        self.assertTrue(TestChecker.test(input,expect,500))
+        expect = str(TypeMismatchInStatement(Assign(Id("b"), CallExpr(Id("goo"), [BinaryOp("<", Id("a"), Id("b"))]))))
+        self.assertTrue(TestChecker.test(input,expect,460))
 
-    def test_not_in_loop_2(self):
+    def test_assign_8(self):
         """Simple program: main"""
         input = """
-        Var: x;
+        Function: foo
+            Parameter: x
+            Body:
+                Return {True,False};
+            EndBody.
         Function: main
             Body:
-                Continue;
+                Var: a,b;
+                foo(True)[0] = foo(1)[1];
                 Return;
             EndBody."""
-        expect = str(NotInLoop(Continue()))
-        self.assertTrue(TestChecker.test(input,expect,501))
+        expect = str(TypeMismatchInExpression(CallExpr(Id("foo"), [IntLiteral(1)])))
+        self.assertTrue(TestChecker.test(input,expect,461))
 
-    def test_not_in_loop_3(self):
+    # Test function call
+    def test_function_call_1(self):
         """Simple program: main"""
         input = """
-        Var: x;
+        Var: x[2][2] = {{1.1, 2.2},{3.3, 4.4}};
         Function: main
             Body:
-                If (True) Then Var: x;
-                ElseIf (False) Then Break;
-                EndIf.
+                x = foo(x);
                 Return;
-            EndBody."""
-        expect = str(NotInLoop(Break()))
-        self.assertTrue(TestChecker.test(input,expect,502))
+            EndBody.
+        Function: foo
+            Parameter: y[2][2]
+            Body:
+                Return {{1,2},{3,4}};
+            EndBody.
+            """
+        expect = str(TypeMismatchInStatement(Return(ArrayLiteral([ArrayLiteral([IntLiteral(1),IntLiteral(2)]),ArrayLiteral([IntLiteral(3),IntLiteral(4)])]))))
+        self.assertTrue(TestChecker.test(input,expect,462))
 
-    def test_not_in_loop_4(self):
+    def test_function_call_2(self):
         """Simple program: main"""
         input = """
-        Var: x;
         Function: main
+            Parameter: x, y, z[2]
             Body:
-                If (True) Then Var: x;
-                ElseIf (False) Then Continue;
-                EndIf.
-                Return;
-            EndBody."""
-        expect = str(NotInLoop(Continue()))
-        self.assertTrue(TestChecker.test(input,expect,503))
-
-    def test_not_in_loop_5(self):
-        """Simple program: main"""
-        input = """
-        Var: x;
-        Function: main
-            Body:
-                If (True) Then Var: x;
-                ElseIf (False) Then
-                Else
-                    Var: y;
-                    Break;
-                EndIf.
-                Return;
-            EndBody."""
-        expect = str(NotInLoop(Break()))
-        self.assertTrue(TestChecker.test(input,expect,504))
-
-    def test_not_in_loop_6(self):
-        """Simple program: main"""
-        input = """
-        Var: x;
-        Function: main
-            Body:
-                If (True) Then Var: x;
-                ElseIf (False) Then
-                Else
-                    Var: y;
-                    Continue;
-                EndIf.
-                Return;
-            EndBody."""
-        expect = str(NotInLoop(Continue()))
-        self.assertTrue(TestChecker.test(input,expect,505))
-
-    def test_not_in_loop_7(self):
-        """Simple program: main"""
-        input = """
-        Var: x;
-        Function: main
-            Body:
-                If (True) Then
-                    If (True) Then Break;
-                    EndIf.
-                EndIf.
-                Return;
-            EndBody."""
-        expect = str(NotInLoop(Break()))
-        self.assertTrue(TestChecker.test(input,expect,506))
-
-    def test_not_in_loop_8(self):
-        """Simple program: main"""
-        input = """
-        Var: x;
-        Function: main
-            Body:
-                If (True) Then
-                    If (True) Then Continue;
-                    EndIf.
-                EndIf.
-                Return;
-            EndBody."""
-        expect = str(NotInLoop(Continue()))
-        self.assertTrue(TestChecker.test(input,expect,507))
-
-    def test_not_in_loop_9(self):
-        """Simple program: main"""
-        input = """
-        Var: x;
-        Function: main
-            Body:
-                If (True) Then
-                    If (True) Then
-                    Else Break;
-                    EndIf.
-                EndIf.
-                Return;
-            EndBody."""
-        expect = str(NotInLoop(Break()))
-        self.assertTrue(TestChecker.test(input,expect,508))
-
-    def test_not_in_loop_10(self):
-        """Simple program: main"""
-        input = """
-        Var: x;
-        Function: main
-            Body:
-                If (True) Then
-                    If (True) Then
-                    Else Continue;
-                    EndIf.
-                EndIf.
-                Return;
-            EndBody."""
-        expect = str(NotInLoop(Continue()))
-        self.assertTrue(TestChecker.test(input,expect,509))
-
-    def test_not_in_loop_11(self):
-        """Simple program: main"""
-        input = """
-        Var: x;
-        Function: main
-            Body:
-                While (True) Do
-                    If (True) Then
-                        If (True) Then Break;
-                        Else Break;
-                        EndIf.
-                        Break;
-                    Else Break;
-                    EndIf.
+                While (x > int_of_float(z[x])) Do
+                    y = z[1];
+                    main(1, 1.1, {1,2});
                 EndWhile.
                 Return;
-            EndBody."""
-        expect = str("")
-        self.assertTrue(TestChecker.test(input,expect,510))
+            EndBody.
+            """
+        expect = str(TypeMismatchInStatement(CallStmt(Id("main"), [IntLiteral(1), FloatLiteral(1.1), ArrayLiteral([IntLiteral(1), IntLiteral(2)])])))
+        self.assertTrue(TestChecker.test(input,expect,463))
 
-    def test_not_in_loop_12(self):
+    def test_function_call_3(self):
+        """Simple program: main"""
+        input = """
+        Var: t[2];
+        Function: foo
+            Parameter: x, y, z[2]
+            Body:
+                While (x > int_of_float(z[x])) Do
+                    y = z[1];
+                    x = foo(1, 1.1, t);
+                EndWhile.
+                Return 1;
+            EndBody.
+        Function: main
+            Body:
+                t = {1,2};
+                Return;
+            EndBody."""
+        expect = str(TypeMismatchInStatement(Assign(Id("t"), ArrayLiteral([IntLiteral(1), IntLiteral(2)]))))
+        self.assertTrue(TestChecker.test(input,expect,464))
+
+    def test_function_call_4(self):
+        """Simple program: main"""
+        input = """
+        Var: t[2];
+        Function: foo
+            Parameter: x, y, z[2]
+            Body:
+                While (x > int_of_float(z[x])) Do
+                    y = z[1];
+                    x = foo(1, 1.1, t);
+                EndWhile.
+                Return 1;
+            EndBody.
+        Function: main
+            Body:
+                t = {1.1,2.2};
+                foo(1, 1.1, t);
+                Return;
+            EndBody."""
+        expect = str(TypeMismatchInStatement(CallStmt(Id("foo"), [IntLiteral(1), FloatLiteral(1.1), Id("t")])))
+        self.assertTrue(TestChecker.test(input,expect,465))
+
+    def test_function_call_5(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x;
+                x = foo(foo(1) > 1);
+                Return;
+            EndBody.
+        Function: foo
+            Parameter: x
+            Body:
+                Return 1;
+            EndBody."""
+        expect = str(TypeMismatchInExpression(CallExpr(Id("foo"), [BinaryOp(">", CallExpr(Id("foo"), [IntLiteral(1)]), IntLiteral(1))])))
+        self.assertTrue(TestChecker.test(input,expect,466))
+
+    def test_function_call_6(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x;
+                x = foo(1, foo(1.1, 1));
+                Return;
+            EndBody.
+        Function: foo
+            Parameter: x, y
+            Body:
+                Return 1;
+            EndBody."""
+        expect = str(TypeMismatchInExpression(CallExpr(Id("foo"), [FloatLiteral(1.1), IntLiteral(1)])))
+        self.assertTrue(TestChecker.test(input,expect,467))
+
+    def test_function_call_7(self):
+        """Simple program: main"""
+        input = """
+        Function: foo
+            Parameter: x
+            Body:
+                x = 1;
+                Return {0};
+            EndBody.
+        Function: main
+            Body:
+                foo(goo(1)[0])[0] = foo(1)[1];
+                Return;
+            EndBody.
+        Function: goo
+            Parameter: x
+            Body:
+                Return {0};
+            EndBody."""
+        expect = str(TypeCannotBeInferred(Assign(    ArrayCell(CallExpr(Id("foo"), [ArrayCell(CallExpr(Id("goo"), [IntLiteral(1)]), [IntLiteral(0)])]), [IntLiteral(0)]),      ArrayCell(CallExpr(Id("foo"), [IntLiteral(1)]), [IntLiteral(1)])     )))
+        self.assertTrue(TestChecker.test(input,expect,468))
+
+    def test_function_call_8(self):
+        """Simple program: main"""
+        input = """
+        Function: foo
+            Parameter: x
+            Body:
+                x = 1;
+                Return;
+            EndBody.
+        Function: main
+            Body:
+                Var: x;
+                foo(goo(x));
+                Return;
+            EndBody.
+        Function: goo
+            Parameter: x
+            Body:
+                Return 1;
+            EndBody."""
+        expect = str(TypeCannotBeInferred(CallStmt(Id("foo"), [CallExpr(Id("goo"), [Id("x")])])))
+        self.assertTrue(TestChecker.test(input,expect,469))
+
+    # def test_function_call_8(self):
+    #     """Simple program: main"""
+    #     input = """
+    #     Function: foo
+    #         Parameter: x
+    #         Body:
+    #             Return {0};
+    #         EndBody.
+    #     Function: main
+    #     Body:
+    #         foo(goo(1)[0])[0] = goo(foo(1)[0])[0];
+    #         Return;
+    #     EndBody.
+    #     Function: goo
+    #         Parameter: x
+    #         Body:
+    #             Return {0};
+    #         EndBody."""
+    #     expect = str(TypeMismatchInExpression(CallExpr(Id("foo"), [FloatLiteral(1.1), IntLiteral(1)])))
+    #     self.assertTrue(TestChecker.test(input,expect,469))
+
+    # Test while, do while
+    def test_if_1(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x;
+                If (x > 1) Then Return 1;
+                ElseIf (x < 1) Then
+                    Var: y;
+                    y = x + 1;
+                    Return 2;
+                Else
+                    y = x - 1;
+                    Return 3;
+                EndIf.
+            EndBody."""
+        expect = str(Undeclared(Identifier(), "y"))
+        self.assertTrue(TestChecker.test(input,expect,470))
+
+    def test_if_2(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x;
+                If (foo(x)) Then
+                EndIf.
+                Return;
+            EndBody.
+        Function: foo
+            Parameter: x
+            Body:
+                Return True;
+            EndBody."""
+        expect = str(TypeCannotBeInferred(If([(CallExpr(Id("foo"), [Id("x")]), [], [])], ([],[]))))
+        self.assertTrue(TestChecker.test(input,expect,471))
+
+    def test_if_3(self):
         """Simple program: main"""
         input = """
         Var: x;
         Function: main
             Body:
-                While (True) Do
-                    If (True) Then
-                        If (True) Then Continue;
-                        Else Continue;
-                        EndIf.
-                        Continue;
-                    Else Continue;
-                    EndIf.
-                EndWhile.
+                If (foo(1.1)) Then
+                    x = 1;
+                EndIf.
                 Return;
+            EndBody.
+        Function: foo
+            Parameter: y
+            Body:
+                y = x;
+                Return True;
             EndBody."""
-        expect = str("")
-        self.assertTrue(TestChecker.test(input,expect,511))
+        expect = str(TypeMismatchInStatement(Assign(Id("y"), Id("x"))))
+        self.assertTrue(TestChecker.test(input,expect,472))
+
+    # def test_if_4(self):
+    #     """Simple program: main"""
+    #     input = """
+    #     Function: foo
+    #         Parameter: x, y
+    #         Body:
+    #             Return False;
+    #         EndBody.
+    #     Function: main
+    #         Parameter: x,y,z
+    #         Body:
+    #             If (True) Then
+    #                 main(1, 2.2, foo(x, y));
+    #             EndIf.
+    #             main(2, 1.1, "Hello");
+    #             Return;
+    #         EndBody."""
+    #     expect = str(TypeMismatchInStatement(CallStmt(Id("main"), [Id("a"), Id("b"), StringLiteral("Hello")])))
+    #     self.assertTrue(TestChecker.test(input,expect,473))
+
+
+
+
+
+
+
+
+
+
+    # # Test not in loop
+    # def test_not_in_loop_1(self):
+    #     """Simple program: main"""
+    #     input = """
+    #     Var: x;
+    #     Function: main
+    #         Body:
+    #             Break;
+    #             Return;
+    #         EndBody."""
+    #     expect = str(NotInLoop(Break()))
+    #     self.assertTrue(TestChecker.test(input,expect,500))
+
+    # def test_not_in_loop_2(self):
+    #     """Simple program: main"""
+    #     input = """
+    #     Var: x;
+    #     Function: main
+    #         Body:
+    #             Continue;
+    #             Return;
+    #         EndBody."""
+    #     expect = str(NotInLoop(Continue()))
+    #     self.assertTrue(TestChecker.test(input,expect,501))
+
+    # def test_not_in_loop_3(self):
+    #     """Simple program: main"""
+    #     input = """
+    #     Var: x;
+    #     Function: main
+    #         Body:
+    #             If (True) Then Var: x;
+    #             ElseIf (False) Then Break;
+    #             EndIf.
+    #             Return;
+    #         EndBody."""
+    #     expect = str(NotInLoop(Break()))
+    #     self.assertTrue(TestChecker.test(input,expect,502))
+
+    # def test_not_in_loop_4(self):
+    #     """Simple program: main"""
+    #     input = """
+    #     Var: x;
+    #     Function: main
+    #         Body:
+    #             If (True) Then Var: x;
+    #             ElseIf (False) Then Continue;
+    #             EndIf.
+    #             Return;
+    #         EndBody."""
+    #     expect = str(NotInLoop(Continue()))
+    #     self.assertTrue(TestChecker.test(input,expect,503))
+
+    # def test_not_in_loop_5(self):
+    #     """Simple program: main"""
+    #     input = """
+    #     Var: x;
+    #     Function: main
+    #         Body:
+    #             If (True) Then Var: x;
+    #             ElseIf (False) Then
+    #             Else
+    #                 Var: y;
+    #                 Break;
+    #             EndIf.
+    #             Return;
+    #         EndBody."""
+    #     expect = str(NotInLoop(Break()))
+    #     self.assertTrue(TestChecker.test(input,expect,504))
+
+    # def test_not_in_loop_6(self):
+    #     """Simple program: main"""
+    #     input = """
+    #     Var: x;
+    #     Function: main
+    #         Body:
+    #             If (True) Then Var: x;
+    #             ElseIf (False) Then
+    #             Else
+    #                 Var: y;
+    #                 Continue;
+    #             EndIf.
+    #             Return;
+    #         EndBody."""
+    #     expect = str(NotInLoop(Continue()))
+    #     self.assertTrue(TestChecker.test(input,expect,505))
+
+    # def test_not_in_loop_7(self):
+    #     """Simple program: main"""
+    #     input = """
+    #     Var: x;
+    #     Function: main
+    #         Body:
+    #             If (True) Then
+    #                 If (True) Then Break;
+    #                 EndIf.
+    #             EndIf.
+    #             Return;
+    #         EndBody."""
+    #     expect = str(NotInLoop(Break()))
+    #     self.assertTrue(TestChecker.test(input,expect,506))
+
+    # def test_not_in_loop_8(self):
+    #     """Simple program: main"""
+    #     input = """
+    #     Var: x;
+    #     Function: main
+    #         Body:
+    #             If (True) Then
+    #                 If (True) Then Continue;
+    #                 EndIf.
+    #             EndIf.
+    #             Return;
+    #         EndBody."""
+    #     expect = str(NotInLoop(Continue()))
+    #     self.assertTrue(TestChecker.test(input,expect,507))
+
+    # def test_not_in_loop_9(self):
+    #     """Simple program: main"""
+    #     input = """
+    #     Var: x;
+    #     Function: main
+    #         Body:
+    #             If (True) Then
+    #                 If (True) Then
+    #                 Else Break;
+    #                 EndIf.
+    #             EndIf.
+    #             Return;
+    #         EndBody."""
+    #     expect = str(NotInLoop(Break()))
+    #     self.assertTrue(TestChecker.test(input,expect,508))
+
+    # def test_not_in_loop_10(self):
+    #     """Simple program: main"""
+    #     input = """
+    #     Var: x;
+    #     Function: main
+    #         Body:
+    #             If (True) Then
+    #                 If (True) Then
+    #                 Else Continue;
+    #                 EndIf.
+    #             EndIf.
+    #             Return;
+    #         EndBody."""
+    #     expect = str(NotInLoop(Continue()))
+    #     self.assertTrue(TestChecker.test(input,expect,509))
+
+    # def test_not_in_loop_11(self):
+    #     """Simple program: main"""
+    #     input = """
+    #     Var: x;
+    #     Function: main
+    #         Body:
+    #             While (True) Do
+    #                 If (True) Then
+    #                     If (True) Then Break;
+    #                     Else Break;
+    #                     EndIf.
+    #                     Break;
+    #                 Else Break;
+    #                 EndIf.
+    #             EndWhile.
+    #             Return;
+    #         EndBody."""
+    #     expect = str("")
+    #     self.assertTrue(TestChecker.test(input,expect,510))
+
+    # def test_not_in_loop_12(self):
+    #     """Simple program: main"""
+    #     input = """
+    #     Var: x;
+    #     Function: main
+    #         Body:
+    #             While (True) Do
+    #                 If (True) Then
+    #                     If (True) Then Continue;
+    #                     Else Continue;
+    #                     EndIf.
+    #                     Continue;
+    #                 Else Continue;
+    #                 EndIf.
+    #             EndWhile.
+    #             Return;
+    #         EndBody."""
+    #     expect = str("")
+    #     self.assertTrue(TestChecker.test(input,expect,511))
 

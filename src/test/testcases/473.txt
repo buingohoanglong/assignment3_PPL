@@ -1,0 +1,15 @@
+
+        Function: foo
+            Parameter: x, y
+            Body:
+                Return False;
+            EndBody.
+        Function: main
+            Parameter: x,y,z
+            Body:
+                If (True) Then
+                    main(1, 2.2, foo(x, y));
+                EndIf.
+                main(2, 1.1, "Hello");
+                Return;
+            EndBody.

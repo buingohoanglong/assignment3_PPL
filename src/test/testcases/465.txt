@@ -1,0 +1,17 @@
+
+        Var: t[2];
+        Function: foo
+            Parameter: x, y, z[2]
+            Body:
+                While (x > int_of_float(z[x])) Do
+                    y = z[1];
+                    x = foo(1, 1.1, t);
+                EndWhile.
+                Return 1;
+            EndBody.
+        Function: main
+            Body:
+                t = {1.1,2.2};
+                foo(1, 1.1, t);
+                Return;
+            EndBody.

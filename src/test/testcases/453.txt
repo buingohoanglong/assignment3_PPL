@@ -1,11 +1,11 @@
 
         Var: x;
+        Function: foo
+            Parameter: x[3]
+            Body:
+                Return;
+            EndBody.
         Function: main
             Body:
-                x = x + foo(x);
-            EndBody.
-        Function: foo
-            Parameter: x
-            Body:
-                Return 1;
+                Return foo({1,2,3});
             EndBody.

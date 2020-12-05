@@ -164,7 +164,7 @@ class StaticChecker(BaseVisitor):
                     if type2.eletype == Unknown():
                         type2.eletype = type1.eletype
                         total_envir[ast.name.name].intype[paramindex].eletype = type1.eletype
-
+            
                 if type1 != type2: # does this happen ???
                     raise TypeMismatchInStatement(stmt)
         
@@ -176,6 +176,7 @@ class StaticChecker(BaseVisitor):
     def visitAssign(self,ast, c):   # left hand side can be in any type except VoidType (what about MType ???)
         ltype = self.visit(ast.lhs, c)
         rtype = self.visit(ast.rhs, c)
+        ltype = self.visit(ast.lhs, c)
         if ltype == TypeCannotInferred() or rtype == TypeCannotInferred():
             raise TypeCannotBeInferred(ast)
         if ltype == VoidType() or rtype == VoidType():
@@ -396,8 +397,11 @@ class StaticChecker(BaseVisitor):
         if len(ast.param) != len(c[ast.method.name].intype):
             raise TypeMismatchInStatement(ast)
         for i in range(len(ast.param)):
-            type1 = c[ast.method.name].intype[i]    # param type
+            # type1 = c[ast.method.name].intype[i]    # param type
             type2 = self.visit(ast.param[i], c)     # argument type
+            if type2 == TypeCannotInferred():
+                raise TypeCannotBeInferred(ast)
+            type1 = c[ast.method.name].intype[i]    # param type
             # type inference
             type1, type2 = self.mutual_infer(type1=type1, type2=type2, e2=ast.param[i], isStmt=True, isReturnStmt=False, ast=ast)
             # param type update
@@ -472,12 +476,15 @@ class StaticChecker(BaseVisitor):
         if len(ast.param) != len(c[ast.method.name].intype):
             raise TypeMismatchInExpression(ast)
         for i in range(len(ast.param)):
-            type1 = c[ast.method.name].intype[i]    # param type
+            # type1 = c[ast.method.name].intype[i]    # param type
             type2 = self.visit(ast.param[i], c)     # argument type
+            if type2 == TypeCannotInferred():
+                return TypeCannotInferred()
+            type1 = c[ast.method.name].intype[i]    # param type
             # type inference
             result = self.mutual_infer(type1=type1, type2=type2, e2=ast.param[i], isStmt=False, isReturnStmt=False, ast=ast)
             if result == TypeCannotInferred():
-                return result
+                return TypeCannotInferred()
             type1, type2 = result
             # param type update
             c[ast.method.name].intype[i] = type1
@@ -491,20 +498,29 @@ class StaticChecker(BaseVisitor):
     def visitArrayCell(self,ast, c):
         arrtype = self.visit(ast.arr, c)
         if arrtype == TypeCannotInferred():
-            return TypeCannotInferred() # return message to containing stmt (raise TypeCannotBeInferred at containing stmt)
+            return TypeCannotInferred()
 
+        if not isinstance(arrtype, ArrayType):
+            if isinstance(ast.arr, Id):
+                raise TypeMismatchInExpression(ast)
+            if isinstance(ast.arr, CallExpr):
+                if isinstance(arrtype, Unknown):
+                    return TypeCannotInferred() # or ArrayType([None]*len(ast.idx), Unknown()) ???
+                else:
+                    raise TypeMismatchInExpression(ast)
         if len(arrtype.dimen) != len(ast.idx):
             raise TypeMismatchInExpression(ast)
+
         for index in ast.idx:
             indextype = self.visit(index, c)
-            if isinstance(indextype, ArrayType):
-                raise TypeMismatchInExpression(ast)
+            if indextype == TypeCannotInferred():
+                return TypeCannotInferred()
             if indextype == Unknown():  # index is Id or CallExpr or ArrayCell
                 indextype = IntType()
                 self.direct_infer(e=index, inferred_type=indextype, c=c)
             if indextype != IntType():
                 raise TypeMismatchInExpression(ast)
-        return self.visit(ast.arr, c)
+        return self.visit(ast.arr, c).eletype
 
 
     def visitId(self,ast, c):

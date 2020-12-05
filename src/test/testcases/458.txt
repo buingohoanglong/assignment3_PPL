@@ -1,0 +1,14 @@
+
+        Function: main
+            Body:
+                Var: x[5] = {1.1, 2.2, 3.3, 4.4, 5.5}, y[5] = {1,2,3,4,5};
+                y = foo(1);
+                foo(2)[0] = x[3];
+                Return;
+            EndBody.
+        Function: foo
+            Parameter: x
+            Body:
+                Return {5,4,3,2,1};
+            EndBody.
+            

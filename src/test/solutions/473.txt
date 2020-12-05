@@ -1,0 +1,1 @@
+Type Cannot Be Inferred: CallStmt(Id(main),[IntLiteral(1),FloatLiteral(2.2),CallExpr(Id(foo),[Id(x),Id(y)])])

@@ -1,0 +1,11 @@
+
+        Function: main
+            Parameter: x, y, z[2]
+            Body:
+                While (x > int_of_float(z[x])) Do
+                    y = z[1];
+                    main(1, 1.1, {1,2});
+                EndWhile.
+                Return;
+            EndBody.
+            
