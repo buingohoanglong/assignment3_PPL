@@ -1,0 +1,13 @@
+
+        Function: foo
+            Parameter: a[2]
+            Body:
+                Var: x[3], y;
+                a[y] = x[a[x[a[x[y]]]]] + foo(a);
+                Return y;
+            EndBody.
+        Function: main
+            Body:
+                printStr(string_of_int(foo({1,2})));
+                Return;
+            EndBody.

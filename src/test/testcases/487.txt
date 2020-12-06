@@ -1,0 +1,8 @@
+
+        Var: z;
+        Function: main
+            Body:
+                Var: x[2][3];
+                x[x[0][1]][x[1][0]] = 1.1;
+                Return;
+            EndBody.

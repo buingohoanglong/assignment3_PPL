@@ -1,14 +1,12 @@
 
+        Function: foo
+            Parameter: x, y
+            Body:
+                Var: z;
+                z = foo( float_of_int(y) +. foo(1.1, 1.1) , int_of_float(foo(x, 1)) );
+                Return z;
+            EndBody.
         Function: main
             Body:
-                Var: x;
-                If (x > 1) Then Return 1;
-                ElseIf (x < 1) Then
-                    Var: y;
-                    y = x + 1;
-                    Return 2;
-                Else
-                    y = x - 1;
-                    Return 3;
-                EndIf.
+                Return;
             EndBody.

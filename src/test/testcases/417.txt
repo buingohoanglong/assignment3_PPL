@@ -1,11 +1,14 @@
 
         Function: foo
             Body:
+                Return;
             EndBody.
         Function: main
             Body:
+                Return;
             EndBody.
         Function: foo
             Parameter: x,y,z
             Body:
+                Return;
             EndBody.

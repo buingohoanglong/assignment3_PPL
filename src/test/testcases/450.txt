@@ -9,6 +9,7 @@
         Function: main
             Body:
                 x = foo(goo()) + 1;
+                Return;
             EndBody.
         Function: goo
             Body:

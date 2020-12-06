@@ -3,4 +3,5 @@
             Body:
                 Var: x[3], y[5] = {1,2,3,4,5};
                 x = y;
+                Return;
             EndBody.

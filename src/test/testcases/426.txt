@@ -4,6 +4,7 @@
             Body:
                 Var: foo;
                 x = 1 + 2 - foo(1);
+                Return;
             EndBody.
         Function: foo
             Parameter: x

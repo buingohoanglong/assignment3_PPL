@@ -1,0 +1,18 @@
+
+        Var: x = 1.1, y;
+        Function: main
+            Parameter: x
+            Body:
+                While (foo(x + 1)) Do
+                    While (y >. float_of_int(x)) Do
+                        Return x;
+                    EndWhile.
+                EndWhile.
+                Return int_of_float(y);
+            EndBody.
+        Function: foo
+            Parameter: z
+            Body:
+                z = x +. y;
+                Return True;
+            EndBody.

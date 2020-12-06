@@ -1,0 +1,13 @@
+
+        Function: foo
+            Parameter: x
+            Body:
+                Return 1.1;
+            EndBody.
+        Function: main
+            Body:
+                Var: x, y;
+                For (x = 5, y, foo(False && y)) Do
+                EndFor.
+                Return;
+            EndBody.

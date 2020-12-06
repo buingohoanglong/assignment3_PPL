@@ -3,6 +3,7 @@
         Function: main
             Body:
                 foo(10);
+                Return;
             EndBody.
         Function: foo
             Parameter: x

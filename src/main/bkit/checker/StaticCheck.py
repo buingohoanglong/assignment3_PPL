@@ -56,28 +56,27 @@ class MType:
 class TypeCannotInferred:
     value: str = 'type cannnot inferred'
 
-# @dataclass
-# class Symbol:
-#     name: str
-#     mtype:Type
+@dataclass
+class Symbol:
+    name: str
+    mtype:Type
 
 class StaticChecker(BaseVisitor):
     def __init__(self,ast):
         self.ast = ast
-        self.global_envi = {
-            "int_of_float": MType([FloatType()],IntType()),
-            "float_of_int": MType([IntType()],FloatType()),
-            "int_of_string": MType([StringType()],IntType()),
-            "string_of_int": MType([IntType()],StringType()),
-            "float_of_string": MType([StringType()],FloatType()),
-            "string_of_float": MType([FloatType()],StringType()),
-            "bool_of_string": MType([StringType()],BoolType()),
-            "string_of_bool": MType([BoolType()],StringType()),
-            "read": MType([],StringType()),
-            "printLn": MType([],VoidType()),
-            "printStr": MType([StringType()],VoidType()),
-            "printStrLn": MType([StringType()],VoidType())
-        }                 
+        self.global_envi = [
+Symbol("int_of_float",MType([FloatType()],IntType())),
+Symbol("float_of_int",MType([IntType()],FloatType())),
+Symbol("int_of_string",MType([StringType()],IntType())),
+Symbol("string_of_int",MType([IntType()],StringType())),
+Symbol("float_of_string",MType([StringType()],FloatType())),
+Symbol("string_of_float",MType([FloatType()],StringType())),
+Symbol("bool_of_string",MType([StringType()],BoolType())),
+Symbol("string_of_bool",MType([BoolType()],StringType())),
+Symbol("read",MType([],StringType())),
+Symbol("printLn",MType([],VoidType())),
+Symbol("printStr",MType([StringType()],VoidType())),
+Symbol("printStrLn",MType([StringType()],VoidType()))]                      
    
     def check(self):
         return self.visit(self.ast,self.global_envi)
@@ -89,14 +88,14 @@ class StaticChecker(BaseVisitor):
             else:
                 funcname = decl.name.name
                 intype_lst = []
-                if funcname in c:
+                if funcname in self.nameList(c):
                     raise Redeclared(Function(), funcname)
                 for param in decl.param:
                     paramtype = Unknown() if param.varDimen == [] else ArrayType(param.varDimen.copy(), Unknown())
                     intype_lst.append(paramtype)
-                c[funcname] = MType(intype_lst, Unknown())
+                c.append(Symbol(funcname, MType(intype_lst, Unknown())))
 
-        if ('main' not in c) or (not isinstance(c['main'], MType)):
+        if ('main' not in self.nameList(c)) or (not isinstance(self.symbol('main', c).mtype, MType)):
             raise NoEntryPoint()
                 
         for decl in ast.decl:
@@ -106,7 +105,7 @@ class StaticChecker(BaseVisitor):
 
     def visitVarDecl(self,ast, c):
         idname = ast.variable.name
-        if idname in c:
+        if idname in self.nameList(c):
             raise Redeclared(Variable(), idname)
         idtype = Unknown() if not ast.varInit else self.visit(ast.varInit, c)
         if ast.varDimen != []:
@@ -115,22 +114,22 @@ class StaticChecker(BaseVisitor):
             else:
                 if ast.varDimen != idtype.dimen:
                     raise TypeMismatchInExpression(ast.varInit) # ???
-        c[idname] = idtype
+        c.append(Symbol(idname, idtype))
 
     def visitFuncDecl(self,ast, c):
         # visit param
-        param_envir = {}
+        param_envir = []
         for param in ast.param:
             paramname = param.variable.name
-            if paramname in param_envir:
+            if paramname in self.nameList(param_envir):
                 raise Redeclared(Parameter(), paramname)
-            param_envir[paramname] = Unknown() if param.varDimen == [] else ArrayType(param.varDimen.copy(), Unknown())
+            paramtype = Unknown() if param.varDimen == [] else ArrayType(param.varDimen.copy(), Unknown())
+            param_envir.append(Symbol(paramname, paramtype))
       
         # update param of this function from outer environment
-        for paramname, paramtype in zip(param_envir, c[ast.name.name].intype):
-            param_envir[paramname] = paramtype
+        for index in range(len(param_envir)):
+            param_envir[index].mtype = self.symbol(ast.name.name, c).mtype.intype[index]
 
-       
         # visit local var declare
         local_envir = param_envir.copy()
         for vardecl in ast.body[0]:
@@ -138,47 +137,53 @@ class StaticChecker(BaseVisitor):
         
         # visit statement
         # total_envir = {**c, **local_envir}
-        total_envir = {**local_envir}
-        for name in c:
-            if name not in local_envir:
-                total_envir[name] = c[name]
-        current_function = {ast.name.name : total_envir[ast.name.name]}
-        del total_envir[ast.name.name]
-        total_envir = {**total_envir, **current_function}   # append current function to the end of dictionary
+        total_envir = local_envir.copy()
+        for name in self.nameList(c):
+            if name not in self.nameList(local_envir):
+                total_envir.append(self.symbol(name,c))
+
+        # if self.symbol(ast.name.name, c).mtype == self.symbol(ast.name.name, total_envir).mtype:  # current function is not hiden in local scope (by same name variable)
+        total_envir.append(Symbol("Current Function", self.symbol(ast.name.name, c).mtype))
+        current_function = self.symbol(ast.name.name, total_envir)
+        del total_envir[self.index(ast.name.name, total_envir)]
+        total_envir.append(current_function)   # append current function to the end of dictionary
         for stmt in ast.body[1]:
             result = self.visit(stmt, total_envir)
             if isinstance(result, Break) or isinstance(result, Continue):
                 raise NotInLoop(result)
 
             # type inference for function parameters
-            for paramname, paramindex in zip(param_envir, range(len(param_envir))):
-                type1 = total_envir[paramname]
-                type2 = total_envir[ast.name.name].intype[paramindex]
-                type1, type2 = self.mutual_infer(type1=type1, type2=type2, e2=None, isStmt=False, isReturnStmt=False, acceptdoubleUnknown=True, ast=ast)
-                total_envir[paramname] = type1
-                total_envir[ast.name.name].intype[paramindex] = type2
-                # if type1 == Unknown():
-                #     type1 = type2
-                #     total_envir[paramname] = type2
-                # if isinstance(type1, ArrayType):
-                #     if type1.eletype == Unknown():
-                #         type1.eletype = type2.eletype
-                #         total_envir[paramname].eletype = type2.eletype
-                # if type2 == Unknown():
-                #     type2 = type1
-                #     total_envir[ast.name.name].intype[paramindex] = type1
-                # if isinstance(type2, ArrayType):
-                #     if type2.eletype == Unknown():
-                #         type2.eletype = type1.eletype
-                #         total_envir[ast.name.name].intype[paramindex].eletype = type1.eletype
-            
-                # if type1 != type2: # does this happen ???
-                #     raise TypeMismatchInStatement(stmt)
+            if isinstance(total_envir[-1].mtype, MType): # current function is not hiden in local scope (by same name variable)
+                for index in range(len(param_envir)):
+                    type1 = total_envir[index].mtype
+                    type2 = self.symbol(total_envir[-1].name, total_envir).mtype.intype[index]
+                    type1, type2 = self.mutual_infer(type1=type1, type2=type2, e2=None, isStmt=False, isReturnStmt=False, acceptdoubleUnknown=True, ast=ast)
+                    total_envir[index].mtype = type1
+                    self.symbol(total_envir[-1].name, total_envir).mtype.intype[index] = type2
+
+                    self.symbol("Current Function", total_envir).mtype.intype[index] = type2
+                    # if type1 == Unknown():
+                    #     type1 = type2
+                    #     total_envir[paramname] = type2
+                    # if isinstance(type1, ArrayType):
+                    #     if type1.eletype == Unknown():
+                    #         type1.eletype = type2.eletype
+                    #         total_envir[paramname].eletype = type2.eletype
+                    # if type2 == Unknown():
+                    #     type2 = type1
+                    #     total_envir[ast.name.name].intype[paramindex] = type1
+                    # if isinstance(type2, ArrayType):
+                    #     if type2.eletype == Unknown():
+                    #         type2.eletype = type1.eletype
+                    #         total_envir[ast.name.name].intype[paramindex].eletype = type1.eletype
+                
+                    # if type1 != type2: # does this happen ???
+                    #     raise TypeMismatchInStatement(stmt)
         
         # update global environment
-        for name in c:
-            if name not in local_envir:
-                c[name] = total_envir[name]
+        for name in self.nameList(c):
+            if name not in self.nameList(local_envir):
+                self.symbol(name, c).mtype = self.symbol(name, total_envir).mtype
 
     def visitAssign(self,ast, c):   # left hand side can be in any type except VoidType (what about MType ???)
         ltype = self.visit(ast.lhs, c)
@@ -199,7 +204,7 @@ class StaticChecker(BaseVisitor):
 
     def visitIf(self,ast, c):
         result = None   # used to detect not in loop
-        current_function_name = list(c.keys())[-1]
+        current_function_name = c[-1].name
         for ifthenstmt in ast.ifthenStmt:
             # visit condition expression
             exptype = self.visit(ifthenstmt[0], c)
@@ -213,40 +218,51 @@ class StaticChecker(BaseVisitor):
                 raise TypeMismatchInStatement(ast)
 
             # visit if/elif local var declare
-            local_envir = {}
+            local_envir = []
             for vardecl in ifthenstmt[1]:
                 self.visit(vardecl, local_envir)
 
             # visit if/elif statement
-            total_envir = {**c, **local_envir}
-            current_function = {current_function_name : total_envir[current_function_name]}
-            del total_envir[current_function_name]
-            total_envir = {**total_envir, **current_function}   # append current function to the end of dictionary
+            # total_envir = {**c, **local_envir}
+            total_envir = c.copy()
+            for name in self.nameList(local_envir):
+                if name in self.nameList(c):
+                    self.symbol(name, total_envir).mtype = self.symbol(name, local_envir).mtype
+                else:
+                    total_envir.append(self.symbol(name, local_envir))
+            current_function = self.symbol(current_function_name, total_envir)
+            del total_envir[self.index(current_function_name, total_envir)]
+            total_envir.append(current_function)   # append current function to the end of dictionary
             for stmt in ifthenstmt[2]:
                 result = self.visit(stmt, total_envir)
 
             # update outer environment
-            for name in c:
-                if name not in local_envir:
-                    c[name] = total_envir[name]
+            for name in self.nameList(c):
+                if name not in self.nameList(local_envir):
+                    self.symbol(name, c).mtype = self.symbol(name, total_envir).mtype
         
         # visit else local var declare
-        local_envir = {}
+        local_envir = []
         for vardecl in ast.elseStmt[0]:
             self.visit(vardecl, local_envir)
 
         # visit else statement
-        total_envir = {**c, **local_envir}
-        current_function = {current_function_name : total_envir[current_function_name]}
-        del total_envir[current_function_name]
-        total_envir = {**total_envir, **current_function}   # append current function to the end of dictionary
+        total_envir = c.copy()
+        for name in self.nameList(local_envir):
+            if name in self.nameList(c):
+                self.symbol(name, total_envir).mtype = self.symbol(name, local_envir).mtype
+            else:
+                total_envir.append(self.symbol(name, local_envir))
+        current_function = self.symbol(current_function_name, total_envir)
+        del total_envir[self.index(current_function_name, total_envir)]
+        total_envir.append(current_function)   # append current function to the end of dictionary
         for stmt in ast.elseStmt[1]:
             result = self.visit(stmt, total_envir)
         
         # update outer environment
-        for name in c:
-            if name not in local_envir:
-                c[name] = total_envir[name]
+        for name in self.nameList(c):
+            if name not in self.nameList(local_envir):
+                self.symbol(name, c).mtype = self.symbol(name, total_envir).mtype
 
         return result
     
@@ -256,8 +272,8 @@ class StaticChecker(BaseVisitor):
         indextype = self.visit(ast.idx1, c)
         if indextype == Unknown():
             indextype = IntType()
-            c[ast.idx1.name] = indextype
-        if indextype != Unknown():
+            self.symbol(ast.idx1.name, c).mtype = indextype
+        if indextype != IntType():
             raise TypeMismatchInStatement(ast)
 
         # visit initExpr (expr1)
@@ -291,23 +307,28 @@ class StaticChecker(BaseVisitor):
             raise TypeMismatchInStatement(ast)    
 
         # visit local (For body) var declare
-        local_envir = {}
+        local_envir = []
         for vardecl in ast.loop[0]:
             self.visit(vardecl, local_envir)
 
         # visit local statement
-        current_function_name = list(c.keys())[-1]
-        total_envir = {**c, **local_envir}
-        current_function = {current_function_name : total_envir[current_function_name]}
-        del total_envir[current_function_name]
-        total_envir = {**total_envir, **current_function}   # append current function to the end of dictionary
+        total_envir = c.copy()
+        for name in self.nameList(local_envir):
+            if name in self.nameList(c):
+                self.symbol(name, total_envir).mtype = self.symbol(name, local_envir).mtype
+            else:
+                total_envir.append(self.symbol(name, local_envir))
+        current_function_name = c[-1].name
+        current_function = self.symbol(current_function_name, total_envir)
+        del total_envir[self.index(current_function_name, total_envir)]
+        total_envir.append(current_function)   # append current function to the end of dictionary
         for stmt in ast.loop[1]:
             self.visit(stmt, total_envir)
 
         # update outer environment
-        for name in c:
-            if name not in local_envir:
-                c[name] = total_envir[name]
+        for name in self.nameList(c):
+            if name not in self.nameList(local_envir):
+                self.symbol(name, c).mtype = self.symbol(name, total_envir).mtype
 
 
     def visitBreak(self,ast, c):
@@ -318,8 +339,9 @@ class StaticChecker(BaseVisitor):
 
     def visitReturn(self,ast, c):
         returntype = VoidType() if ast.expr == None else self.visit(ast.expr, c)
-        current_function_name = list(c.keys())[-1]
-        current_returntype = c[current_function_name].restype
+        # current_function_name = c[-1].name  # what if current function is hiden by local variable with same name
+        # current_returntype = self.symbol(current_function_name, c).mtype.restype
+        current_returntype = self.symbol("Current Function", c).mtype.restype
 
         # check VoidType
         if returntype == VoidType() and ast.expr != None:
@@ -330,7 +352,9 @@ class StaticChecker(BaseVisitor):
         # type inference
         current_returntype, returntype = self.mutual_infer(type1=current_returntype, type2=returntype, e2=ast.expr, isStmt=True, isReturnStmt=True, acceptdoubleUnknown=False, ast=ast)
         # current return type update
-        c[current_function_name].restype = current_returntype
+        self.symbol("Current Function", c).mtype.restype = current_returntype
+        if isinstance(c[-1].mtype, MType):
+            self.symbol(c[-1].name, c).mtype.restype = current_returntype
         # expr type update 
         self.direct_infer(e=ast.expr, inferred_type=returntype, c=c)
 
@@ -347,24 +371,28 @@ class StaticChecker(BaseVisitor):
             raise TypeMismatchInStatement(ast)
 
         # visit local (DoWhile body) var declare
-        local_envir = {}
+        local_envir = []
         for vardecl in ast.sl[0]:
             self.visit(vardecl, local_envir)
 
         # visit local statement
-        current_function_name = list(c.keys())[-1]
-        total_envir = {**c, **local_envir}
-        current_function = {current_function_name : total_envir[current_function_name]}
-        del total_envir[current_function_name]
-        total_envir = {**total_envir, **current_function}   # append current function to the end of dictionary
+        total_envir = c.copy()
+        for name in self.nameList(local_envir):
+            if name in self.nameList(c):
+                self.symbol(name, total_envir).mtype = self.symbol(name, local_envir).mtype
+            else:
+                total_envir.append(self.symbol(name, local_envir))
+        current_function_name = c[-1].name
+        current_function = self.symbol(current_function_name, total_envir)
+        del total_envir[self.index(current_function_name, total_envir)]
+        total_envir.append(current_function)   # append current function to the end of dictionary
         for stmt in ast.sl[1]:
             self.visit(stmt, total_envir)
 
         # update outer environment
-        for name in c:
-            if name not in local_envir:
-                c[name] = total_envir[name]
-
+        for name in self.nameList(c):
+            if name not in self.nameList(local_envir):
+                self.symbol(name, c).mtype = self.symbol(name, total_envir).mtype
 
     def visitWhile(self,ast, c):
         # visit expression
@@ -378,56 +406,63 @@ class StaticChecker(BaseVisitor):
             raise TypeMismatchInStatement(ast)
 
         # visit local (While body) var declare
-        local_envir = {}
+        local_envir = []
         for vardecl in ast.sl[0]:
             self.visit(vardecl, local_envir)
 
         # visit local statement
-        current_function_name = list(c.keys())[-1]
-        total_envir = {**c, **local_envir}
-        current_function = {current_function_name : total_envir[current_function_name]}
-        del total_envir[current_function_name]
-        total_envir = {**total_envir, **current_function}   # append current function to the end of dictionary
+        total_envir = c.copy()
+        for name in self.nameList(local_envir):
+            if name in self.nameList(c):
+                self.symbol(name, total_envir).mtype = self.symbol(name, local_envir).mtype
+            else:
+                total_envir.append(self.symbol(name, local_envir))
+        current_function_name = c[-1].name
+        current_function = self.symbol(current_function_name, total_envir)
+        del total_envir[self.index(current_function_name, total_envir)]
+        total_envir.append(current_function)   # append current function to the end of dictionary
         for stmt in ast.sl[1]:
             self.visit(stmt, total_envir)
 
         # update outer environment
-        for name in c:
-            if name not in local_envir:
-                c[name] = total_envir[name]
+        for name in self.nameList(c):
+            if name not in self.nameList(local_envir):
+                self.symbol(name, c).mtype = self.symbol(name, total_envir).mtype
 
     def visitCallStmt(self,ast, c):
-        if ast.method.name not in c:
+        if ast.method.name not in self.nameList(c):
             raise Undeclared(Function(), ast.method.name)
-        if not isinstance(c[ast.method.name], MType):
+        if not isinstance(self.symbol(ast.method.name, c).mtype, MType):
             raise Undeclared(Function(), ast.method.name)
-        if len(ast.param) != len(c[ast.method.name].intype):
+        if len(ast.param) != len(self.symbol(ast.method.name, c).mtype.intype):
             raise TypeMismatchInStatement(ast)
         for i in range(len(ast.param)):
             # type1 = c[ast.method.name].intype[i]    # param type
             type2 = self.visit(ast.param[i], c)     # argument type
             if type2 == TypeCannotInferred():
                 raise TypeCannotBeInferred(ast)
-            type1 = c[ast.method.name].intype[i]    # param type
+            type1 = self.symbol(ast.method.name, c).mtype.intype[i]    # param type
             # type inference
             type1, type2 = self.mutual_infer(type1=type1, type2=type2, e2=ast.param[i], isStmt=True, isReturnStmt=False, acceptdoubleUnknown=False, ast=ast)
             # param type update
-            c[ast.method.name].intype[i] = type1
+            self.symbol(ast.method.name, c).mtype.intype[i] = type1
             # argument type update 
             self.direct_infer(e=ast.param[i], inferred_type=type2, c=c)
 
             # if func call inside the same func declare
             # update param of declared function in every agument iteration
-            if ast.method.name == list(c.keys())[-1]:
+            if ast.method.name == c[-1].name and isinstance(c[-1].mtype, MType):
                 for j in range(len(ast.param)):
-                    type1 = c[ast.method.name].intype[j]
-                    type2 = c[list(c.keys())[j]]
-                    c[ast.method.name].intype[j], c[list(c.keys())[j]] = self.mutual_infer(type1=type1, type2=type2, e2=None, isStmt=True, isReturnStmt=False, acceptdoubleUnknown=True, ast=ast)
+                    type1 = self.symbol(ast.method.name, c).mtype.intype[j]
+                    type2 = c[j].mtype
+                    self.symbol(ast.method.name, c).mtype.intype[j], c[j].mtype = self.mutual_infer(type1=type1, type2=type2, e2=None, isStmt=True, isReturnStmt=False, acceptdoubleUnknown=True, ast=ast)
+
+                    self.symbol("Current Function", c).mtype.intype[j] = self.symbol(ast.method.name, c).mtype.intype[j]
 
         
-        if c[ast.method.name].restype == Unknown():
-            c[ast.method.name].restype = VoidType()
-        if c[ast.method.name].restype != VoidType():
+        if self.symbol(ast.method.name, c).mtype.restype == Unknown():
+            self.symbol(ast.method.name, c).mtype.restype = VoidType()
+        if self.symbol(ast.method.name, c).mtype.restype != VoidType():
             raise TypeMismatchInStatement(ast)
 
 
@@ -485,37 +520,39 @@ class StaticChecker(BaseVisitor):
     # check intype
     # return restype
     def visitCallExpr(self,ast, c):
-        if ast.method.name not in c:
+        if ast.method.name not in self.nameList(c):
             raise Undeclared(Function(), ast.method.name)
-        if not isinstance(c[ast.method.name], MType):
+        if not isinstance(self.symbol(ast.method.name, c).mtype, MType):
             raise Undeclared(Function(), ast.method.name)
-        if len(ast.param) != len(c[ast.method.name].intype):
+        if len(ast.param) != len(self.symbol(ast.method.name, c).mtype.intype):
             raise TypeMismatchInExpression(ast)
         for i in range(len(ast.param)):
             # type1 = c[ast.method.name].intype[i]    # param type
             type2 = self.visit(ast.param[i], c)     # argument type
             if type2 == TypeCannotInferred():
                 return TypeCannotInferred()
-            type1 = c[ast.method.name].intype[i]    # param type
+            type1 = self.symbol(ast.method.name, c).mtype.intype[i]    # param type
             # type inference
             result = self.mutual_infer(type1=type1, type2=type2, e2=ast.param[i], isStmt=False, isReturnStmt=False, acceptdoubleUnknown=False, ast=ast)
             if result == TypeCannotInferred():
                 return TypeCannotInferred()
             type1, type2 = result
             # param type update
-            c[ast.method.name].intype[i] = type1
+            self.symbol(ast.method.name, c).mtype.intype[i] = type1
             # argument type update 
             self.direct_infer(e=ast.param[i], inferred_type=type2, c=c)
 
             # if func call inside the same func declare
             # update param of declared function in every agument iteration
-            if ast.method.name == list(c.keys())[-1]:
+            if ast.method.name == c[-1].name and isinstance(c[-1].mtype, MType):
                 for j in range(len(ast.param)):
-                    type1 = c[ast.method.name].intype[j]
-                    type2 = c[list(c.keys())[j]]
-                    c[ast.method.name].intype[j], c[list(c.keys())[j]] = self.mutual_infer(type1=type1, type2=type2, e2=None, isStmt=False, isReturnStmt=False, acceptdoubleUnknown=True, ast=ast)
+                    type1 = self.symbol(ast.method.name, c).mtype.intype[j]
+                    type2 = c[j].mtype
+                    self.symbol(ast.method.name, c).mtype.intype[j], c[j].mtype = self.mutual_infer(type1=type1, type2=type2, e2=None, isStmt=False, isReturnStmt=False, acceptdoubleUnknown=True, ast=ast)
 
-        return c[ast.method.name].restype
+                    self.symbol("Current Function", c).mtype.intype[j] = self.symbol(ast.method.name, c).mtype.intype[j]
+
+        return self.symbol(ast.method.name, c).mtype.restype
 
     # check Undeclare, check index
     # return innermost eletype
@@ -548,11 +585,11 @@ class StaticChecker(BaseVisitor):
 
 
     def visitId(self,ast, c):
-        if ast.name not in c:
+        if ast.name not in self.nameList(c):
             raise Undeclared(Identifier(), ast.name)
-        if isinstance(c[ast.name], MType):
+        if isinstance(self.symbol(ast.name, c).mtype, MType):
             raise Undeclared(Identifier(), ast.name)
-        return c[ast.name]
+        return self.symbol(ast.name, c).mtype
 
 
     def visitIntLiteral(self,ast, c):
@@ -587,6 +624,21 @@ class StaticChecker(BaseVisitor):
 
     
     # Support methods
+    def symbol(self, name, lst):
+        for symbol in lst:
+            if symbol.name == name:
+                return symbol
+        return None
+
+    def index(self, name, lst):
+        for index in range(len(lst)):
+            if lst[index].name == name:
+                return index
+        return None
+
+    def nameList(self, lst):
+        return [symbol.name for symbol in lst]
+
 
     def mutual_infer(self, type1, type2, e2, isStmt, isReturnStmt, acceptdoubleUnknown, ast):
         if type1 == Unknown() and type2 == Unknown():
@@ -664,11 +716,11 @@ class StaticChecker(BaseVisitor):
     
     def direct_infer(self, e, inferred_type, c):
         if isinstance(e, Id):
-            c[e.name] = inferred_type
+            self.symbol(e.name, c).mtype = inferred_type
         elif isinstance(e, CallExpr):
-            c[e.method.name].restype = inferred_type
+            self.symbol(e.method.name, c).mtype.restype = inferred_type
         elif isinstance(e, ArrayCell):
             if isinstance(e.arr, Id):
-                c[e.arr.name].eletype = inferred_type
+                self.symbol(e.arr.name, c).mtype.eletype = inferred_type
             elif isinstance(e.arr, CallExpr):
-                c[e.arr.method.name].restype.eletype = inferred_type  
+                self.symbol(e.arr.method.name, c).mtype.restype.eletype = inferred_type  

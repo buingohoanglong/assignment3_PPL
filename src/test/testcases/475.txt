@@ -2,12 +2,13 @@
         Function: main
             Body:
                 Var: x;
-                If (foo(x)) Then
+                If (x > 1) Then Return 1;
+                ElseIf (x < 1) Then
+                    Var: y;
+                    y = x + 1;
+                    Return 2;
+                Else
+                    y = x - 1;
+                    Return 3;
                 EndIf.
-                Return;
-            EndBody.
-        Function: foo
-            Parameter: x
-            Body:
-                Return True;
             EndBody.

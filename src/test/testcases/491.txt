@@ -1,0 +1,33 @@
+
+        ** This is a global variable **
+        Var: arr[5] = {5,   7, 1,2, 6};
+
+        ** Sort function **
+        Function: sort
+            Parameter: arr[5]
+            Body:
+                Var: i;
+                For (i = 0, i < 5, 1) Do
+                    Var: j;
+                    For (j = i + 1, j < 5, 1) Do
+                        If arr[i] < arr[j] Then
+                            Var: temp;
+                            temp = arr[i];
+                            arr[i] = arr[j];
+                            arr[j] = temp;
+                        EndIf.
+                    EndFor.
+                EndFor.
+                Return arr;
+            EndBody.
+
+        ** Entry of program **
+        Function: main
+            Body:
+                Var: i;
+                arr = sort(arr);
+                For (i = 0, i < 5, 1) Do
+                    printStr(string_of_int(arr[i]));
+                    printLn();
+                EndFor.
+            EndBody.

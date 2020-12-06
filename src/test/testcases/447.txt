@@ -8,4 +8,5 @@
         Function: main
             Body:
                 x = foo(10) +. 1.1;
+                Return;
             EndBody.

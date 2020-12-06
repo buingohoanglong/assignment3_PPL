@@ -1,0 +1,17 @@
+
+        Var: z;
+        Function: main
+            Body:
+                Var: x, y;
+                For (x = 5, y, foo(False && y)) Do
+                    For (z = foo(y), y, x) Do
+                    EndFor.
+                EndFor.
+                Return;
+            EndBody.
+        Function: foo
+            Parameter: x
+            Body:
+                x = z;
+                Return 1;
+            EndBody.

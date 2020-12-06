@@ -1,0 +1,33 @@
+
+        Var: arr[4] = {"This", "is", "a", "testcase"};
+        ** This
+        * is
+        * a
+        * block
+        * comment ** 
+        Function: printSth
+            Parameter: arr[4]
+            Body:
+                Var : count = 0;
+                While count < 100 Do
+                    Var: i;
+                    If (count % 3 == 0) || (count % 5 == 0) Then
+                        printStr("Skip");
+                        Continue;
+                    ElseIf (count % 4 == 0) Then
+                        Break;
+                    EndIf.
+                    For (i = 0 , i < 4, 1) Do
+                        printStr(arr[i]);
+                        printLn();
+                    EndFor.
+                    count = count + -i + 1;
+                EndWhile.
+                Return;
+            EndBody.
+
+        Function: main
+            Body:
+                printSth(arr);
+                Return;
+            EndBody.

@@ -11,6 +11,7 @@ class CheckSuite(unittest.TestCase):
         input = """Function: main
                    Body: 
                         foo();
+                        Return;
                    EndBody."""
         expect = str(Undeclared(Function(),"foo"))
         self.assertTrue(TestChecker.test(input,expect,400))
@@ -20,6 +21,7 @@ class CheckSuite(unittest.TestCase):
         input = """Function: main  
                    Body:
                         printStrLn();
+                        Return;
                     EndBody."""
         expect = str(TypeMismatchInStatement(CallStmt(Id("printStrLn"),[])))
         self.assertTrue(TestChecker.test(input,expect,401))
@@ -29,6 +31,7 @@ class CheckSuite(unittest.TestCase):
         input = """Function: main 
                     Body:
                         printStrLn(read(4));
+                        Return;
                     EndBody."""
         expect = str(TypeMismatchInExpression(CallExpr(Id("read"),[IntLiteral(4)])))
         self.assertTrue(TestChecker.test(input,expect,402))
@@ -76,6 +79,7 @@ class CheckSuite(unittest.TestCase):
         input = """Var: x, main, z;
         Function: foo
             Body:
+                Return;
             EndBody."""
         expect = str(NoEntryPoint())
         self.assertTrue(TestChecker.test(input,expect,408))
@@ -85,6 +89,7 @@ class CheckSuite(unittest.TestCase):
         input = """Var: x, y, z;
         Function: main
             Body:
+                Return;
             EndBody."""
         expect = str("")
         self.assertTrue(TestChecker.test(input,expect,409))
@@ -95,6 +100,7 @@ class CheckSuite(unittest.TestCase):
         input = """Var: x, x, z;
         Function: main
             Body:
+                Return;
             EndBody."""
         expect = str(Redeclared(Variable(), "x"))
         self.assertTrue(TestChecker.test(input,expect,410))    
@@ -105,6 +111,7 @@ class CheckSuite(unittest.TestCase):
         Var: m, n[2][3], y = 1;
         Function: main
             Body:
+                Return;
             EndBody."""
         expect = str(Redeclared(Variable(), "y"))
         self.assertTrue(TestChecker.test(input,expect,411)) 
@@ -116,6 +123,7 @@ class CheckSuite(unittest.TestCase):
             Parameter: x, y[4], z
             Body:
                 Var: y = {1,2,3}, m, n;
+                Return;
             EndBody."""
         expect = str(Redeclared(Variable(), "y"))
         self.assertTrue(TestChecker.test(input,expect,412)) 
@@ -128,6 +136,7 @@ class CheckSuite(unittest.TestCase):
         Function: main
             Body:
                 Var: x, y, z, main;
+                Return;
             EndBody."""
         expect = str("")
         self.assertTrue(TestChecker.test(input,expect,413)) 
@@ -139,6 +148,7 @@ class CheckSuite(unittest.TestCase):
         Function: main
             Parameter: x,x,y
             Body:
+                Return;
             EndBody."""
         expect = str(Redeclared(Parameter(), "x"))
         self.assertTrue(TestChecker.test(input,expect,414))    
@@ -150,6 +160,7 @@ class CheckSuite(unittest.TestCase):
         Function: main
             Parameter: x, y, z, main
             Body:
+                Return;
             EndBody."""
         expect = str("")
         self.assertTrue(TestChecker.test(input,expect,415))
@@ -160,6 +171,7 @@ class CheckSuite(unittest.TestCase):
         input = """Var: x, main, y;
         Function: main
             Body:
+                Return;
             EndBody."""
         expect = str(Redeclared(Function(), "main"))
         self.assertTrue(TestChecker.test(input,expect,416))    
@@ -169,13 +181,16 @@ class CheckSuite(unittest.TestCase):
         input = """
         Function: foo
             Body:
+                Return;
             EndBody.
         Function: main
             Body:
+                Return;
             EndBody.
         Function: foo
             Parameter: x,y,z
             Body:
+                Return;
             EndBody."""
         expect = str(Redeclared(Function(), "foo"))
         self.assertTrue(TestChecker.test(input,expect,417))   
@@ -187,6 +202,7 @@ class CheckSuite(unittest.TestCase):
         Function: main
             Body:
                 x = 1;
+                Return;
             EndBody."""
         expect = str(Undeclared(Identifier(), "x"))
         self.assertTrue(TestChecker.test(input,expect,418))       
@@ -198,6 +214,7 @@ class CheckSuite(unittest.TestCase):
         Function: main
             Body:
                 x = y + 1;
+                Return;
             EndBody."""
         expect = str(Undeclared(Identifier(), "y"))
         self.assertTrue(TestChecker.test(input,expect,419)) 
@@ -215,6 +232,7 @@ class CheckSuite(unittest.TestCase):
         Function: main
             Body:
                 y = foo(x) +. 2.2;
+                Return;
             EndBody."""
         expect = str(Undeclared(Identifier(), "y"))
         self.assertTrue(TestChecker.test(input,expect,420))
@@ -271,6 +289,7 @@ class CheckSuite(unittest.TestCase):
         Function: main
             Body:
                 x = foo(1);
+                Return;
             EndBody."""
         expect = str(Undeclared(Function(), "foo"))
         self.assertTrue(TestChecker.test(input,expect,424)) 
@@ -283,6 +302,7 @@ class CheckSuite(unittest.TestCase):
             Body:
                 Var: foo;
                 x = foo(1);
+                Return;
             EndBody."""
         expect = str(Undeclared(Function(), "foo"))
         self.assertTrue(TestChecker.test(input,expect,425)) 
@@ -295,6 +315,7 @@ class CheckSuite(unittest.TestCase):
             Body:
                 Var: foo;
                 x = 1 + 2 - foo(1);
+                Return;
             EndBody.
         Function: foo
             Parameter: x
@@ -621,6 +642,7 @@ class CheckSuite(unittest.TestCase):
         Function: main
             Body:
                 x = foo(10) +. 1.1;
+                Return;
             EndBody.
         Function: foo
             Parameter: x
@@ -642,6 +664,7 @@ class CheckSuite(unittest.TestCase):
         Function: main
             Body:
                 x = foo(10) +. 1.1;
+                Return;
             EndBody."""
         expect = str(TypeMismatchInExpression(BinaryOp("+.", CallExpr(Id("foo"), [IntLiteral(10)]), FloatLiteral(1.1))))
         self.assertTrue(TestChecker.test(input,expect,447))
@@ -653,6 +676,7 @@ class CheckSuite(unittest.TestCase):
         Function: main
             Body:
                 foo(10);
+                Return;
             EndBody.
         Function: foo
             Parameter: x
@@ -675,6 +699,7 @@ class CheckSuite(unittest.TestCase):
         Function: main
             Body:
                 foo(goo());
+                Return;
             EndBody.
         Function: goo
             Body:
@@ -696,6 +721,7 @@ class CheckSuite(unittest.TestCase):
         Function: main
             Body:
                 x = foo(goo()) + 1;
+                Return;
             EndBody.
         Function: goo
             Body:
@@ -719,6 +745,7 @@ class CheckSuite(unittest.TestCase):
         Function: main
             Body:
                 x = foo(goo()) +. 1.1;
+                Return;
             EndBody.
         Function: goo
             Body:
@@ -742,6 +769,7 @@ class CheckSuite(unittest.TestCase):
         Function: main
             Body:
                 x = foo(goo()) + 1;
+                Return;
             EndBody.
         Function: goo
             Body:
@@ -776,6 +804,7 @@ class CheckSuite(unittest.TestCase):
         Function: main
             Body:
                 x = x + foo(x);
+                Return;
             EndBody.
         Function: foo
             Parameter: x
@@ -792,6 +821,7 @@ class CheckSuite(unittest.TestCase):
         Function: main
             Body:
                 x = foo(x) + x;
+                Return;
             EndBody.
         Function: foo
             Parameter: x
@@ -808,6 +838,7 @@ class CheckSuite(unittest.TestCase):
             Body:
                 Var: x, y[5] = {1,2,3,4,5};
                 x = y;
+                Return;
             EndBody."""
         expect = str(TypeMismatchInStatement(Assign(Id("x"), Id("y"))))
         self.assertTrue(TestChecker.test(input,expect,456))
@@ -819,6 +850,7 @@ class CheckSuite(unittest.TestCase):
             Body:
                 Var: x[3], y[5] = {1,2,3,4,5};
                 x = y;
+                Return;
             EndBody."""
         expect = str(TypeMismatchInStatement(Assign(Id("x"), Id("y"))))
         self.assertTrue(TestChecker.test(input,expect,457))
@@ -1136,8 +1168,25 @@ class CheckSuite(unittest.TestCase):
         expect = str(TypeMismatchInExpression(CallExpr(Id("foo"), [Id("x"), FloatLiteral(1.1)])))
         self.assertTrue(TestChecker.test(input,expect,473))
 
+    def test_function_call_13(self):
+        """Simple program: main"""
+        input = """
+        Function: foo
+            Parameter: x, y
+            Body:
+                Var: z;
+                z = foo( float_of_int(y) +. foo(1.1, 1.1) , int_of_float(foo(x, 1)) );
+                Return z;
+            EndBody.
+        Function: main
+            Body:
+                Return;
+            EndBody."""
+        expect = str(TypeMismatchInExpression(CallExpr(Id("foo"), [FloatLiteral(1.1), FloatLiteral(1.1)])))
+        self.assertTrue(TestChecker.test(input,expect,474))
 
-    # def test_function_call_8(self):
+
+    # def test_function_call_8(self):   which error ???
     #     """Simple program: main"""
     #     input = """
     #     Function: foo
@@ -1176,7 +1225,7 @@ class CheckSuite(unittest.TestCase):
                 EndIf.
             EndBody."""
         expect = str(Undeclared(Identifier(), "y"))
-        self.assertTrue(TestChecker.test(input,expect,474))
+        self.assertTrue(TestChecker.test(input,expect,475))
 
     def test_if_2(self):
         """Simple program: main"""
@@ -1194,7 +1243,7 @@ class CheckSuite(unittest.TestCase):
                 Return True;
             EndBody."""
         expect = str(TypeCannotBeInferred(If([(CallExpr(Id("foo"), [Id("x")]), [], [])], ([],[]))))
-        self.assertTrue(TestChecker.test(input,expect,475))
+        self.assertTrue(TestChecker.test(input,expect,476))
 
     def test_if_3(self):
         """Simple program: main"""
@@ -1214,7 +1263,7 @@ class CheckSuite(unittest.TestCase):
                 Return True;
             EndBody."""
         expect = str(TypeMismatchInStatement(Assign(Id("y"), Id("x"))))
-        self.assertTrue(TestChecker.test(input,expect,476))
+        self.assertTrue(TestChecker.test(input,expect,477))
 
     def test_if_4(self):
         """Simple program: main"""
@@ -1229,23 +1278,460 @@ class CheckSuite(unittest.TestCase):
                 Return;
             EndBody."""
         expect = str(TypeMismatchInStatement(CallStmt(Id("main"), [IntLiteral(1), FloatLiteral(2.2)])))
-        self.assertTrue(TestChecker.test(input,expect,477))
+        self.assertTrue(TestChecker.test(input,expect,478))
 
-    # # Test while, dowhile
-    # def test_if_4(self):
-    #     """Simple program: main"""
-    #     input = """
-    #     Function: main
-    #         Parameter: x,y
-    #         Body:
-    #             If (True) Then
-    #                 x = True;
-    #                 main(1, 2.2);
-    #             EndIf.
-    #             Return;
-    #         EndBody."""
-    #     expect = str(TypeMismatchInStatement(CallStmt(Id("main"), [IntLiteral(1), FloatLiteral(2.2)])))
-    #     self.assertTrue(TestChecker.test(input,expect,477))
+    # Test while, dowhile
+    def test_while_1(self):
+        """Simple program: main"""
+        input = """
+        Var: x = 1.1, y;
+        Function: main
+            Parameter: x
+            Body:
+                While (y > x) Do
+                    foo(x);
+                EndWhile.
+                Return;
+            EndBody.
+        Function: foo
+            Parameter: z
+            Body:
+                z = x + y;
+                Return;
+            EndBody."""
+        expect = str(TypeMismatchInExpression(BinaryOp("+", Id("x"), Id("y"))))
+        self.assertTrue(TestChecker.test(input,expect,479))
+
+    def test_while_2(self):
+        """Simple program: main"""
+        input = """
+        Var: x = 1.1, y;
+        Function: main
+            Parameter: x
+            Body:
+                While (foo(x + 1)) Do
+                    While (y >. float_of_int(x)) Do
+                        Return x;
+                    EndWhile.
+                EndWhile.
+                Return int_of_float(y);
+            EndBody.
+        Function: foo
+            Parameter: z
+            Body:
+                z = x +. y;
+                Return True;
+            EndBody."""
+        expect = str(TypeMismatchInStatement(Assign(Id("z"), BinaryOp("+.", Id("x"), Id("y")))))
+        self.assertTrue(TestChecker.test(input,expect,480))
+
+    # Test for
+    def test_for_1(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                For (x = 5, True, 1) Do
+                EndFor.
+                Return;
+            EndBody."""
+        expect = str(Undeclared(Identifier(), "x"))
+        self.assertTrue(TestChecker.test(input,expect,481))
+
+    def test_for_2(self):
+        """Simple program: main"""
+        input = """
+        Function: foo
+            Body:
+                Return 1;
+            EndBody.
+        Function: main
+            Body:
+                For (foo = 5, True, 1) Do
+                EndFor.
+                Return;
+            EndBody."""
+        expect = str(Undeclared(Identifier(), "foo"))
+        self.assertTrue(TestChecker.test(input,expect,482))
+
+    def test_for_3(self):
+        """Simple program: main"""
+        input = """
+        Function: foo
+            Parameter: x
+            Body:
+                Return 1.1;
+            EndBody.
+        Function: main
+            Body:
+                Var: x, y;
+                For (x = 5, y, foo(False && y)) Do
+                EndFor.
+                Return;
+            EndBody."""
+        expect = str(TypeMismatchInStatement(For(Id("x"), IntLiteral(5), Id("y"), CallExpr(Id("foo"), [BinaryOp("&&", BooleanLiteral(False), Id("y"))]), ([], []))))
+        self.assertTrue(TestChecker.test(input,expect,483))
+
+    def test_for_4(self):
+        """Simple program: main"""
+        input = """
+        Var: z;
+        Function: main
+            Body:
+                Var: x, y;
+                For (x = 5, y, foo(False && y)) Do
+                    For (z = foo(y), y, x) Do
+                    EndFor.
+                EndFor.
+                Return;
+            EndBody.
+        Function: foo
+            Parameter: x
+            Body:
+                x = z;
+                Return 1;
+            EndBody."""
+        expect = str(TypeMismatchInStatement(Assign(Id("x"), Id("z"))))
+        self.assertTrue(TestChecker.test(input,expect,484))
+    
+    # Test array cell
+    def test_arraycell_1(self):
+        """Simple program: main"""
+        input = """
+        Var: z;
+        Function: main
+            Body:
+                Var: x[2][3];
+                x = {1,2};
+                Return;
+            EndBody."""
+        expect = str(TypeMismatchInStatement(Assign(Id("x"), ArrayLiteral([IntLiteral(1), IntLiteral(2)]))))
+        self.assertTrue(TestChecker.test(input,expect,485))    
+
+    def test_arraycell_2(self):
+        """Simple program: main"""
+        input = """
+        Var: z;
+        Function: main
+            Body:
+                Var: x[2][3];
+                x[1] = {1,2,3};
+                Return;
+            EndBody."""
+        expect = str(TypeMismatchInExpression(ArrayCell(Id("x"), [IntLiteral(1)])))
+        self.assertTrue(TestChecker.test(input,expect,486))    
+
+    def test_arraycell_3(self):
+        """Simple program: main"""
+        input = """
+        Var: z;
+        Function: main
+            Body:
+                Var: x[2][3];
+                x[x[0][1]][x[1][0]] = 1.1;
+                Return;
+            EndBody."""
+        expect = str(TypeMismatchInStatement(Assign(ArrayCell(Id("x"), [ArrayCell(Id("x"), [IntLiteral(0), IntLiteral(1)]), ArrayCell(Id("x"), [IntLiteral(1), IntLiteral(0)])]), FloatLiteral(1.1))))
+        self.assertTrue(TestChecker.test(input,expect,487))    
+
+    def test_arraycell_4(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[2][3];
+                x[int_of_float(x[0][1])][foo(x[1][0])] = 1.1 +. foo(3);
+                Return;
+            EndBody.
+        Function: foo
+            Parameter: x
+            Body:
+                Return 1.1;
+            EndBody."""
+        expect = str(TypeMismatchInExpression(CallExpr(Id("foo"), [IntLiteral(3)])))
+        self.assertTrue(TestChecker.test(input,expect,488))  
+
+    def test_arraycell_5(self):
+        """Simple program: main"""
+        input = """
+        Function: foo
+            Parameter: x[2][3], y
+            Body:
+                x[x[0][y]][foo(x, foo(x, y))] = 1.1;
+                Return 1;
+            EndBody.
+        Function: main
+            Body:
+                Return foo({{1,2,3},{4,5,6}});
+            EndBody."""
+        expect = str(TypeMismatchInStatement(Assign(ArrayCell(Id("x"), [ArrayCell(Id("x"), [IntLiteral(0), Id("y")]), CallExpr(Id("foo"), [Id("x"), CallExpr(Id("foo"), [Id("x"), Id("y")])])]), FloatLiteral(1.1))))
+        self.assertTrue(TestChecker.test(input,expect,489)) 
+
+    # Test valid program
+    def test_valid_program_1(self):
+        input = """
+        Var: arr[4] = {"This", "is", "a", "testcase"};
+        ** This
+        * is
+        * a
+        * block
+        * comment ** 
+        Function: printSth
+            Parameter: arr[4]
+            Body:
+                Var : count = 0;
+                While count < 100 Do
+                    Var: i;
+                    If (count % 3 == 0) || (count % 5 == 0) Then
+                        printStr("Skip");
+                        Continue;
+                    ElseIf (count % 4 == 0) Then
+                        Break;
+                    EndIf.
+                    For (i = 0 , i < 4, 1) Do
+                        printStr(arr[i]);
+                        printLn();
+                    EndFor.
+                    count = count + -i + 1;
+                EndWhile.
+                Return;
+            EndBody.
+
+        Function: main
+            Body:
+                printSth(arr);
+                Return;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,490))
+
+    def test_valid_program_2(self):
+        input = """
+        ** This is a global variable **
+        Var: arr[5] = {5,   7, 1,2, 6};
+
+        ** Sort function **
+        Function: sort
+            Parameter: arr[5]
+            Body:
+                Var: i;
+                For (i = 0, i < 5, 1) Do
+                    Var: j;
+                    For (j = i + 1, j < 5, 1) Do
+                        If arr[i] < arr[j] Then
+                            Var: temp;
+                            temp = arr[i];
+                            arr[i] = arr[j];
+                            arr[j] = temp;
+                        EndIf.
+                    EndFor.
+                EndFor.
+                Return arr;
+            EndBody.
+
+        ** Entry of program **
+        Function: main
+            Body:
+                Var: i;
+                arr = sort(arr);
+                For (i = 0, i < 5, 1) Do
+                    printStr(string_of_int(arr[i]));
+                    printLn();
+                EndFor.
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,491))
+
+    def test_valid_program_3(self):
+        input = """Var: string_list[4] = {"","","",""};
+        Function: get_string_list
+            Parameter: list[4]
+                Body:
+                    Var : str_input = "", i;
+                    For (i = 0 , i < 4, 1) Do
+                        str_input = read();
+                        list[i] = str_input;
+                    EndFor.
+                    Return list;
+                EndBody.
+        Function: print_string_list
+            Parameter: list[4]
+                Body:
+                    Var: i;
+                    For (i = 0 , i < 4, 1) Do
+                        printStrLn(list[i]);
+                    EndFor.
+                    Return;
+                EndBody.
+        Function: main
+            Body:
+                print_string_list(string_list);
+                Return;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,492))
+
+    def test_valid_program_4(self):
+        input = """
+        Function: sqrt
+            Parameter: x
+            Body:
+                Return 1.1;
+            EndBody.
+        Function: radius
+            Parameter: x, y
+            Body:
+                Var: radius;
+                radius = sqrt(x*.x +. y*.y);
+                Return radius;
+            EndBody.
+        Function: main
+            Body:
+                Var : x = 3.5e0, y = 4.6e-0;
+                printStrLn(string_of_float(radius(x, y)));
+                Return;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,493))
+
+    def test_valid_program_5(self):
+        input = """Var: x[5] = {1,2,3,4,5};
+        Function: sum
+            Parameter: x[5]
+                Body:
+                    Var: sum = 0, i;
+                    For (i = 0 , i < 5, 1) Do
+                        sum = sum + i;
+                    EndFor.
+                    Return sum;
+                EndBody.
+        Function: main
+            Body:
+                Var: y;
+                y = sum(x);
+                printStrLn(string_of_int(y));
+                Return;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,494))
+
+    def test_full_program_6(self):
+        input = """Var: x;
+        Function: fact
+            Parameter: n
+                Body:
+                    If n == 0 Then
+                        Return 1;
+                    Else
+                        Return n * fact (n - 1);
+                    EndIf.
+                EndBody.
+        Function: main
+            Body:
+                x = 10;
+                printStr(string_of_int(fact(x)));
+                Return;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,495))
+
+    def test_valid_program_7(self):
+        input = """           
+        Function: main
+            Body:
+                Var: a[3][2] = {{1,2},{3,4},{5,6}}, i = 0;
+                While i < 3 Do
+                    Var: j = 0;
+                    If i < j Then
+                        Continue;
+                    EndIf.
+                    While (j < 2) Do
+                        printStrLn(string_of_int(a[i][j]));
+                        j =  j + 1;
+                        If j == 3 Then
+                            Continue;
+                        EndIf.
+                    EndWhile.
+                    i = i + 1;           
+                EndWhile.
+                Return;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,496))
+
+    def test_valid_program_8(self):
+        input = """
+        Function: foo
+            Parameter: a[2]
+            Body:
+                Var: x[3], y;
+                a[y] = x[a[x[a[x[y]]]]] + foo(a);
+                Return y;
+            EndBody.
+        Function: main
+            Body:
+                printStr(string_of_int(foo({1,2})));
+                Return;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,497))
+
+    def test_valid_program_9(self):
+        input = """
+        Function: sum
+            Parameter: x,y
+            Body:
+                Return x + y;
+            EndBody.
+        Function: power
+            Parameter: x,y
+            Body:
+                Var: result = 1, i;
+                For (i = 1, i <= y, 1) Do
+                    result = result * x;
+                EndFor.
+                Return result;
+            EndBody.
+        Function: sqrt
+            Parameter: x
+            Body:
+                Return 1;
+            EndBody.            
+        Function: main
+            Body:
+                Var: a[5], x, y;
+                a[x * y - sum(x,y)] = a[sum(x,y) * 2 + a[x*y] - sqrt(power(x,2))] * sqrt(power(x+y,x*y) + power(x,y));
+                Return;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,498))
+
+    def test_valid_program_10(self):
+        input = """           
+        Function: main
+            Body:
+                Var: a = {{1,2}, {3,4}, {5,6}}, x, y;
+                a[a[x+y][x-y]][a[x*y][x\y]] = 1;
+                Return;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,499))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

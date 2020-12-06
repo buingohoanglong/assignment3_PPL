@@ -1,0 +1,26 @@
+
+        Function: sum
+            Parameter: x,y
+            Body:
+                Return x + y;
+            EndBody.
+        Function: power
+            Parameter: x,y
+            Body:
+                Var: result = 1, i;
+                For (i = 1, i <= y, 1) Do
+                    result = result * x;
+                EndFor.
+                Return result;
+            EndBody.
+        Function: sqrt
+            Parameter: x
+            Body:
+                Return 1;
+            EndBody.            
+        Function: main
+            Body:
+                Var: a[5], x, y;
+                a[x * y - sum(x,y)] = a[sum(x,y) * 2 + a[x*y] - sqrt(power(x,2))] * sqrt(power(x+y,x*y) + power(x,y));
+                Return;
+            EndBody.

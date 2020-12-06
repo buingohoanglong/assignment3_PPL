@@ -9,6 +9,7 @@
         Function: main
             Body:
                 foo(goo());
+                Return;
             EndBody.
         Function: goo
             Body:

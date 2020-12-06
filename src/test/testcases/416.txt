@@ -1,4 +1,5 @@
 Var: x, main, y;
         Function: main
             Body:
+                Return;
             EndBody.

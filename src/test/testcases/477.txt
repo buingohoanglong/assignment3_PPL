@@ -1,10 +1,15 @@
 
+        Var: x;
         Function: main
-            Parameter: x,y
             Body:
-                If (True) Then
-                    x = True;
-                    main(1, 2.2);
+                If (foo(1.1)) Then
+                    x = 1;
                 EndIf.
                 Return;
+            EndBody.
+        Function: foo
+            Parameter: y
+            Body:
+                y = x;
+                Return True;
             EndBody.

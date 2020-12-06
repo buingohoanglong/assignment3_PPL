@@ -1,0 +1,7 @@
+
+        Function: main
+            Body:
+                For (x = 5, True, 1) Do
+                EndFor.
+                Return;
+            EndBody.

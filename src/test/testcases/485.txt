@@ -1,0 +1,8 @@
+
+        Var: z;
+        Function: main
+            Body:
+                Var: x[2][3];
+                x = {1,2};
+                Return;
+            EndBody.

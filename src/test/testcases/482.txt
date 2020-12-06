@@ -1,0 +1,11 @@
+
+        Function: foo
+            Body:
+                Return 1;
+            EndBody.
+        Function: main
+            Body:
+                For (foo = 5, True, 1) Do
+                EndFor.
+                Return;
+            EndBody.

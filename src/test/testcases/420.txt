@@ -9,4 +9,5 @@
         Function: main
             Body:
                 y = foo(x) +. 2.2;
+                Return;
             EndBody.

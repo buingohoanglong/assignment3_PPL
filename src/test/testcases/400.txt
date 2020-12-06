@@ -1,4 +1,5 @@
 Function: main
                    Body: 
                         foo();
+                        Return;
                    EndBody.

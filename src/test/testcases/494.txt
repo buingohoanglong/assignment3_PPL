@@ -1,0 +1,17 @@
+Var: x[5] = {1,2,3,4,5};
+        Function: sum
+            Parameter: x[5]
+                Body:
+                    Var: sum = 0, i;
+                    For (i = 0 , i < 5, 1) Do
+                        sum = sum + i;
+                    EndFor.
+                    Return sum;
+                EndBody.
+        Function: main
+            Body:
+                Var: y;
+                y = sum(x);
+                printStrLn(string_of_int(y));
+                Return;
+            EndBody.

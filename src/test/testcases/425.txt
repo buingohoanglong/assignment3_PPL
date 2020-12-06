@@ -4,4 +4,5 @@
             Body:
                 Var: foo;
                 x = foo(1);
+                Return;
             EndBody.

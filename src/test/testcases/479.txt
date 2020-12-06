@@ -1,0 +1,16 @@
+
+        Var: x = 1.1, y;
+        Function: main
+            Parameter: x
+            Body:
+                While (y > x) Do
+                    foo(x);
+                EndWhile.
+                Return;
+            EndBody.
+        Function: foo
+            Parameter: z
+            Body:
+                z = x + y;
+                Return;
+            EndBody.
