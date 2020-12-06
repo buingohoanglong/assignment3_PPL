@@ -1049,7 +1049,7 @@ class CheckSuite(unittest.TestCase):
             Parameter: x
             Body:
                 x = 1;
-                Return {0};
+                Return {1,2};
             EndBody.
         Function: main
             Body:
@@ -1740,192 +1740,305 @@ class CheckSuite(unittest.TestCase):
 
 
 
-    # # Test not in loop
-    # def test_not_in_loop_1(self):
-    #     """Simple program: main"""
-    #     input = """
-    #     Var: x;
-    #     Function: main
-    #         Body:
-    #             Break;
-    #             Return;
-    #         EndBody."""
-    #     expect = str(NotInLoop(Break()))
-    #     self.assertTrue(TestChecker.test(input,expect,500))
+    # Test not in loop
+    def test_not_in_loop_1(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Body:
+                Break;
+                Return;
+            EndBody."""
+        expect = str(NotInLoop(Break()))
+        self.assertTrue(TestChecker.test(input,expect,500))
 
-    # def test_not_in_loop_2(self):
-    #     """Simple program: main"""
-    #     input = """
-    #     Var: x;
-    #     Function: main
-    #         Body:
-    #             Continue;
-    #             Return;
-    #         EndBody."""
-    #     expect = str(NotInLoop(Continue()))
-    #     self.assertTrue(TestChecker.test(input,expect,501))
+    def test_not_in_loop_2(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Body:
+                Continue;
+                Return;
+            EndBody."""
+        expect = str(NotInLoop(Continue()))
+        self.assertTrue(TestChecker.test(input,expect,501))
 
-    # def test_not_in_loop_3(self):
-    #     """Simple program: main"""
-    #     input = """
-    #     Var: x;
-    #     Function: main
-    #         Body:
-    #             If (True) Then Var: x;
-    #             ElseIf (False) Then Break;
-    #             EndIf.
-    #             Return;
-    #         EndBody."""
-    #     expect = str(NotInLoop(Break()))
-    #     self.assertTrue(TestChecker.test(input,expect,502))
+    def test_not_in_loop_3(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Body:
+                If (True) Then Var: x;
+                ElseIf (False) Then Break;
+                EndIf.
+                Return;
+            EndBody."""
+        expect = str(NotInLoop(Break()))
+        self.assertTrue(TestChecker.test(input,expect,502))
 
-    # def test_not_in_loop_4(self):
-    #     """Simple program: main"""
-    #     input = """
-    #     Var: x;
-    #     Function: main
-    #         Body:
-    #             If (True) Then Var: x;
-    #             ElseIf (False) Then Continue;
-    #             EndIf.
-    #             Return;
-    #         EndBody."""
-    #     expect = str(NotInLoop(Continue()))
-    #     self.assertTrue(TestChecker.test(input,expect,503))
+    def test_not_in_loop_4(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Body:
+                If (True) Then Var: x;
+                ElseIf (False) Then Continue;
+                EndIf.
+                Return;
+            EndBody."""
+        expect = str(NotInLoop(Continue()))
+        self.assertTrue(TestChecker.test(input,expect,503))
 
-    # def test_not_in_loop_5(self):
-    #     """Simple program: main"""
-    #     input = """
-    #     Var: x;
-    #     Function: main
-    #         Body:
-    #             If (True) Then Var: x;
-    #             ElseIf (False) Then
-    #             Else
-    #                 Var: y;
-    #                 Break;
-    #             EndIf.
-    #             Return;
-    #         EndBody."""
-    #     expect = str(NotInLoop(Break()))
-    #     self.assertTrue(TestChecker.test(input,expect,504))
+    def test_not_in_loop_5(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Body:
+                If (True) Then Var: x;
+                ElseIf (False) Then
+                Else
+                    Var: y;
+                    Break;
+                EndIf.
+                Return;
+            EndBody."""
+        expect = str(NotInLoop(Break()))
+        self.assertTrue(TestChecker.test(input,expect,504))
 
-    # def test_not_in_loop_6(self):
-    #     """Simple program: main"""
-    #     input = """
-    #     Var: x;
-    #     Function: main
-    #         Body:
-    #             If (True) Then Var: x;
-    #             ElseIf (False) Then
-    #             Else
-    #                 Var: y;
-    #                 Continue;
-    #             EndIf.
-    #             Return;
-    #         EndBody."""
-    #     expect = str(NotInLoop(Continue()))
-    #     self.assertTrue(TestChecker.test(input,expect,505))
+    def test_not_in_loop_6(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Body:
+                If (True) Then Var: x;
+                ElseIf (False) Then
+                Else
+                    Var: y;
+                    Continue;
+                EndIf.
+                Return;
+            EndBody."""
+        expect = str(NotInLoop(Continue()))
+        self.assertTrue(TestChecker.test(input,expect,505))
 
-    # def test_not_in_loop_7(self):
-    #     """Simple program: main"""
-    #     input = """
-    #     Var: x;
-    #     Function: main
-    #         Body:
-    #             If (True) Then
-    #                 If (True) Then Break;
-    #                 EndIf.
-    #             EndIf.
-    #             Return;
-    #         EndBody."""
-    #     expect = str(NotInLoop(Break()))
-    #     self.assertTrue(TestChecker.test(input,expect,506))
+    def test_not_in_loop_7(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Body:
+                If (True) Then
+                    If (True) Then Break;
+                    EndIf.
+                EndIf.
+                Return;
+            EndBody."""
+        expect = str(NotInLoop(Break()))
+        self.assertTrue(TestChecker.test(input,expect,506))
 
-    # def test_not_in_loop_8(self):
-    #     """Simple program: main"""
-    #     input = """
-    #     Var: x;
-    #     Function: main
-    #         Body:
-    #             If (True) Then
-    #                 If (True) Then Continue;
-    #                 EndIf.
-    #             EndIf.
-    #             Return;
-    #         EndBody."""
-    #     expect = str(NotInLoop(Continue()))
-    #     self.assertTrue(TestChecker.test(input,expect,507))
+    def test_not_in_loop_8(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Body:
+                If (True) Then
+                    If (True) Then Continue;
+                    EndIf.
+                EndIf.
+                Return;
+            EndBody."""
+        expect = str(NotInLoop(Continue()))
+        self.assertTrue(TestChecker.test(input,expect,507))
 
-    # def test_not_in_loop_9(self):
-    #     """Simple program: main"""
-    #     input = """
-    #     Var: x;
-    #     Function: main
-    #         Body:
-    #             If (True) Then
-    #                 If (True) Then
-    #                 Else Break;
-    #                 EndIf.
-    #             EndIf.
-    #             Return;
-    #         EndBody."""
-    #     expect = str(NotInLoop(Break()))
-    #     self.assertTrue(TestChecker.test(input,expect,508))
+    def test_not_in_loop_9(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Body:
+                If (True) Then
+                    If (True) Then
+                    Else Break;
+                    EndIf.
+                EndIf.
+                Return;
+            EndBody."""
+        expect = str(NotInLoop(Break()))
+        self.assertTrue(TestChecker.test(input,expect,508))
 
-    # def test_not_in_loop_10(self):
-    #     """Simple program: main"""
-    #     input = """
-    #     Var: x;
-    #     Function: main
-    #         Body:
-    #             If (True) Then
-    #                 If (True) Then
-    #                 Else Continue;
-    #                 EndIf.
-    #             EndIf.
-    #             Return;
-    #         EndBody."""
-    #     expect = str(NotInLoop(Continue()))
-    #     self.assertTrue(TestChecker.test(input,expect,509))
+    def test_not_in_loop_10(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Body:
+                If (True) Then
+                    If (True) Then
+                    Else Continue;
+                    EndIf.
+                EndIf.
+                Return;
+            EndBody."""
+        expect = str(NotInLoop(Continue()))
+        self.assertTrue(TestChecker.test(input,expect,509))
 
-    # def test_not_in_loop_11(self):
-    #     """Simple program: main"""
-    #     input = """
-    #     Var: x;
-    #     Function: main
-    #         Body:
-    #             While (True) Do
-    #                 If (True) Then
-    #                     If (True) Then Break;
-    #                     Else Break;
-    #                     EndIf.
-    #                     Break;
-    #                 Else Break;
-    #                 EndIf.
-    #             EndWhile.
-    #             Return;
-    #         EndBody."""
-    #     expect = str("")
-    #     self.assertTrue(TestChecker.test(input,expect,510))
+    def test_not_in_loop_11(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Body:
+                While (True) Do
+                    If (True) Then
+                        If (True) Then Break;
+                        Else Break;
+                        EndIf.
+                        Break;
+                    Else Break;
+                    EndIf.
+                EndWhile.
+                Return;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,510))
 
-    # def test_not_in_loop_12(self):
-    #     """Simple program: main"""
-    #     input = """
-    #     Var: x;
-    #     Function: main
-    #         Body:
-    #             While (True) Do
-    #                 If (True) Then
-    #                     If (True) Then Continue;
-    #                     Else Continue;
-    #                     EndIf.
-    #                     Continue;
-    #                 Else Continue;
-    #                 EndIf.
-    #             EndWhile.
-    #             Return;
-    #         EndBody."""
-    #     expect = str("")
-    #     self.assertTrue(TestChecker.test(input,expect,511))
+    def test_not_in_loop_12(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Body:
+                While (True) Do
+                    If (True) Then
+                        If (True) Then Continue;
+                        Else Continue;
+                        EndIf.
+                        Continue;
+                    Else Continue;
+                    EndIf.
+                EndWhile.
+                Return;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,511))
 
+    # Test invalid array literal
+    def test_invalid_array_literal_1(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[3] = {1, 1.1, 2};
+                Return;
+            EndBody."""
+        expect = str(InvalidArrayLiteral(ArrayLiteral([IntLiteral(1), FloatLiteral(1.1), IntLiteral(2)])))
+        self.assertTrue(TestChecker.test(input,expect,512))    
+
+    def test_invalid_array_literal_2(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[2][3] = {{1,2,3},{4,5,6.6}};
+                Return;
+            EndBody."""
+        expect = str(InvalidArrayLiteral(ArrayLiteral([IntLiteral(4), IntLiteral(5), FloatLiteral(6.6)])))
+        self.assertTrue(TestChecker.test(input,expect,513))   
+
+    def test_invalid_array_literal_3(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[2][3] = {{1,2,3},{4.4,5.5,6.6}};
+                Return;
+            EndBody."""
+        expect = str(InvalidArrayLiteral(ArrayLiteral([ArrayLiteral([IntLiteral(1), IntLiteral(2), IntLiteral(3)]),ArrayLiteral([FloatLiteral(4.4), FloatLiteral(5.5), FloatLiteral(6.6)])])))
+        self.assertTrue(TestChecker.test(input,expect,514)) 
+
+    def test_invalid_array_literal_4(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[2][3] = {{1,2,3},{4,5,6,7}};
+                Return;
+            EndBody."""
+        expect = str(InvalidArrayLiteral(ArrayLiteral([ArrayLiteral([IntLiteral(1), IntLiteral(2), IntLiteral(3)]),ArrayLiteral([IntLiteral(4), IntLiteral(5), IntLiteral(6), IntLiteral(7)])])))
+        self.assertTrue(TestChecker.test(input,expect,515)) 
+
+    def test_invalid_array_literal_5(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[2][2][3] = {{{1,2,3},{4,5,6}},{{7,8,9},{10,11,12.12}}};
+                Return;
+            EndBody."""
+        expect = str(InvalidArrayLiteral(ArrayLiteral([IntLiteral(10), IntLiteral(11), FloatLiteral(12.12)])))
+        self.assertTrue(TestChecker.test(input,expect,516)) 
+
+    def test_invalid_array_literal_6(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[2][2][3] = {{{1,2,3},{4,5,6}},{{7,8,9,10},{11,12,13,14}}};
+                Return;
+            EndBody."""
+        expect = str(InvalidArrayLiteral(ArrayLiteral([ArrayLiteral([ArrayLiteral([IntLiteral(1),IntLiteral(2),IntLiteral(3)]),ArrayLiteral([IntLiteral(4),IntLiteral(5),IntLiteral(6)])]),ArrayLiteral([ArrayLiteral([IntLiteral(7),IntLiteral(8),IntLiteral(9),IntLiteral(10)]),ArrayLiteral([IntLiteral(11),IntLiteral(12),IntLiteral(13),IntLiteral(14)])])])))
+        self.assertTrue(TestChecker.test(input,expect,517)) 
+
+    def test_invalid_array_literal_7(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[3] = {1,2,{1,2}};
+                Return;
+            EndBody."""
+        expect = str(InvalidArrayLiteral(ArrayLiteral([IntLiteral(1), IntLiteral(2), ArrayLiteral([IntLiteral(1), IntLiteral(2)])])))
+        self.assertTrue(TestChecker.test(input,expect,518))
+
+    def test_invalid_array_literal_8(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[3] = {"Hello", "World", 1};
+                Return;
+            EndBody."""
+        expect = str(InvalidArrayLiteral(ArrayLiteral([StringLiteral("Hello"), StringLiteral("World"), IntLiteral(1)])))
+        self.assertTrue(TestChecker.test(input,expect,519))
+
+    # Test index out of range
+    def test_index_out_of_range_1(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[3] = {1,2,3}, y;
+                y = x[-1];
+                Return;
+            EndBody."""
+        expect = str(IndexOutOfRange(ArrayCell(Id("x"),[UnaryOp("-", IntLiteral(1))])))
+        self.assertTrue(TestChecker.test(input,expect,520))    
+
+    def test_index_out_of_range_2(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[3] = {1,2,3}, y;
+                y = x[3];
+                Return;
+            EndBody."""
+        expect = str(IndexOutOfRange(ArrayCell(Id("x"),[IntLiteral(3)])))
+        self.assertTrue(TestChecker.test(input,expect,521))   

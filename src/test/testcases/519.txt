@@ -1,0 +1,6 @@
+
+        Function: main
+            Body:
+                Var: x[3] = {"Hello", "World", 1};
+                Return;
+            EndBody.

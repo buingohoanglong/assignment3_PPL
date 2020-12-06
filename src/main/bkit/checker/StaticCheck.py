@@ -572,7 +572,8 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         if len(arrtype.dimen) != len(ast.idx):
             raise TypeMismatchInExpression(ast)
 
-        for index in ast.idx:
+        for i in range(len(ast.idx)):
+            index = ast.idx[i]
             indextype = self.visit(index, c)
             if indextype == TypeCannotInferred():
                 return TypeCannotInferred()
@@ -581,6 +582,13 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
                 self.direct_infer(e=index, inferred_type=indextype, c=c)
             if indextype != IntType():
                 raise TypeMismatchInExpression(ast)
+
+            # check index out of range
+            result = self.eval_const_expr(index)
+            if result != None:
+                if result < 0 or result >= arrtype.dimen[i]:
+                    raise IndexOutOfRange(ast)
+
         return self.visit(ast.arr, c).eletype
 
 
@@ -724,3 +732,35 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
                 self.symbol(e.arr.name, c).mtype.eletype = inferred_type
             elif isinstance(e.arr, CallExpr):
                 self.symbol(e.arr.method.name, c).mtype.restype.eletype = inferred_type  
+
+    
+    def eval_const_expr(self, expr):
+        if isinstance(expr, BinaryOp):
+            left = self.eval_const_expr(expr.left)
+            right = self.eval_const_expr(expr.right)
+            if left == None or right == None:
+                return None
+            if expr.op == '+':
+                return left + right
+            elif expr.op == '-':
+                return left - right
+            elif expr.op == '*':
+                return left * right
+            elif expr.op == '\\':
+                return left // right
+            elif expr.op == '%':
+                return left % right
+            else:
+                return None
+        elif isinstance(expr, UnaryOp):
+            body = self.eval_const_expr(expr.body)
+            if body == None:
+                return None
+            if expr.op == '-':
+                return - body
+            else:
+                return None
+        elif isinstance(expr, IntLiteral):
+            return expr.value
+        else:
+            return None
