@@ -1,13 +1,18 @@
 
-        Function: main
+        Function: foo
+            Parameter: x, y
             Body:
-                Var: x;
-                If (foo(x)) Then
+                Var: z;
+                While (True) Do
+                    z = foo(1, foo(x, True));
+                EndWhile.
+                Return y && z;
+            EndBody.
+        Function: main
+            Parameter: x,y,z
+            Body:
+                If (True) Then
+                    main(1, 2.2, foo(x, y));
                 EndIf.
                 Return;
-            EndBody.
-        Function: foo
-            Parameter: x
-            Body:
-                Return True;
             EndBody.

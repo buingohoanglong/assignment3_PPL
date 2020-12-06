@@ -2,14 +2,11 @@
         Function: foo
             Parameter: x, y
             Body:
-                Return False;
+                Var: z;
+                z = foo(y+1, foo(x, 1.1));
+                Return z;
             EndBody.
         Function: main
-            Parameter: x,y,z
             Body:
-                If (True) Then
-                    main(1, 2.2, foo(x, y));
-                EndIf.
-                main(2, 1.1, "Hello");
                 Return;
             EndBody.

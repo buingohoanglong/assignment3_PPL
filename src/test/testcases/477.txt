@@ -1,0 +1,10 @@
+
+        Function: main
+            Parameter: x,y
+            Body:
+                If (True) Then
+                    x = True;
+                    main(1, 2.2);
+                EndIf.
+                Return;
+            EndBody.

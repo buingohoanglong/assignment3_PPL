@@ -1,1 +1,1 @@
-Undeclared Identifier: y
+Type Mismatch In Statement: Assign(Id(x),Id(y))

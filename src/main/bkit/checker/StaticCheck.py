@@ -137,7 +137,11 @@ class StaticChecker(BaseVisitor):
             self.visit(vardecl, local_envir)
         
         # visit statement
-        total_envir = {**c, **local_envir}
+        # total_envir = {**c, **local_envir}
+        total_envir = {**local_envir}
+        for name in c:
+            if name not in local_envir:
+                total_envir[name] = c[name]
         current_function = {ast.name.name : total_envir[ast.name.name]}
         del total_envir[ast.name.name]
         total_envir = {**total_envir, **current_function}   # append current function to the end of dictionary
@@ -150,23 +154,26 @@ class StaticChecker(BaseVisitor):
             for paramname, paramindex in zip(param_envir, range(len(param_envir))):
                 type1 = total_envir[paramname]
                 type2 = total_envir[ast.name.name].intype[paramindex]
-                if type1 == Unknown():
-                    type1 = type2
-                    total_envir[paramname] = type2
-                if isinstance(type1, ArrayType):
-                    if type1.eletype == Unknown():
-                        type1.eletype = type2.eletype
-                        total_envir[paramname].eletype = type2.eletype
-                if type2 == Unknown():
-                    type2 = type1
-                    total_envir[ast.name.name].intype[paramindex] = type1
-                if isinstance(type2, ArrayType):
-                    if type2.eletype == Unknown():
-                        type2.eletype = type1.eletype
-                        total_envir[ast.name.name].intype[paramindex].eletype = type1.eletype
+                type1, type2 = self.mutual_infer(type1=type1, type2=type2, e2=None, isStmt=False, isReturnStmt=False, acceptdoubleUnknown=True, ast=ast)
+                total_envir[paramname] = type1
+                total_envir[ast.name.name].intype[paramindex] = type2
+                # if type1 == Unknown():
+                #     type1 = type2
+                #     total_envir[paramname] = type2
+                # if isinstance(type1, ArrayType):
+                #     if type1.eletype == Unknown():
+                #         type1.eletype = type2.eletype
+                #         total_envir[paramname].eletype = type2.eletype
+                # if type2 == Unknown():
+                #     type2 = type1
+                #     total_envir[ast.name.name].intype[paramindex] = type1
+                # if isinstance(type2, ArrayType):
+                #     if type2.eletype == Unknown():
+                #         type2.eletype = type1.eletype
+                #         total_envir[ast.name.name].intype[paramindex].eletype = type1.eletype
             
-                if type1 != type2: # does this happen ???
-                    raise TypeMismatchInStatement(stmt)
+                # if type1 != type2: # does this happen ???
+                #     raise TypeMismatchInStatement(stmt)
         
         # update global environment
         for name in c:
@@ -183,7 +190,7 @@ class StaticChecker(BaseVisitor):
             raise TypeMismatchInStatement(ast)
 
         # type inference
-        ltype, rtype = self.mutual_infer(type1=ltype, type2=rtype, e2=ast.rhs, isStmt=True, isReturnStmt=False, ast=ast)
+        ltype, rtype = self.mutual_infer(type1=ltype, type2=rtype, e2=ast.rhs, isStmt=True, isReturnStmt=False, acceptdoubleUnknown=False, ast=ast)
         # lhs type update
         self.direct_infer(e=ast.lhs, inferred_type=ltype, c=c)
         # rhs type update
@@ -217,7 +224,7 @@ class StaticChecker(BaseVisitor):
             total_envir = {**total_envir, **current_function}   # append current function to the end of dictionary
             for stmt in ifthenstmt[2]:
                 result = self.visit(stmt, total_envir)
-    
+
             # update outer environment
             for name in c:
                 if name not in local_envir:
@@ -321,7 +328,7 @@ class StaticChecker(BaseVisitor):
             raise TypeMismatchInStatement(ast)
 
         # type inference
-        current_returntype, returntype = self.mutual_infer(type1=current_returntype, type2=returntype, e2=ast.expr, isStmt=True, isReturnStmt=True, ast=ast)
+        current_returntype, returntype = self.mutual_infer(type1=current_returntype, type2=returntype, e2=ast.expr, isStmt=True, isReturnStmt=True, acceptdoubleUnknown=False, ast=ast)
         # current return type update
         c[current_function_name].restype = current_returntype
         # expr type update 
@@ -403,11 +410,20 @@ class StaticChecker(BaseVisitor):
                 raise TypeCannotBeInferred(ast)
             type1 = c[ast.method.name].intype[i]    # param type
             # type inference
-            type1, type2 = self.mutual_infer(type1=type1, type2=type2, e2=ast.param[i], isStmt=True, isReturnStmt=False, ast=ast)
+            type1, type2 = self.mutual_infer(type1=type1, type2=type2, e2=ast.param[i], isStmt=True, isReturnStmt=False, acceptdoubleUnknown=False, ast=ast)
             # param type update
             c[ast.method.name].intype[i] = type1
             # argument type update 
             self.direct_infer(e=ast.param[i], inferred_type=type2, c=c)
+
+            # if func call inside the same func declare
+            # update param of declared function in every agument iteration
+            if ast.method.name == list(c.keys())[-1]:
+                for j in range(len(ast.param)):
+                    type1 = c[ast.method.name].intype[j]
+                    type2 = c[list(c.keys())[j]]
+                    c[ast.method.name].intype[j], c[list(c.keys())[j]] = self.mutual_infer(type1=type1, type2=type2, e2=None, isStmt=True, isReturnStmt=False, acceptdoubleUnknown=True, ast=ast)
+
         
         if c[ast.method.name].restype == Unknown():
             c[ast.method.name].restype = VoidType()
@@ -482,7 +498,7 @@ class StaticChecker(BaseVisitor):
                 return TypeCannotInferred()
             type1 = c[ast.method.name].intype[i]    # param type
             # type inference
-            result = self.mutual_infer(type1=type1, type2=type2, e2=ast.param[i], isStmt=False, isReturnStmt=False, ast=ast)
+            result = self.mutual_infer(type1=type1, type2=type2, e2=ast.param[i], isStmt=False, isReturnStmt=False, acceptdoubleUnknown=False, ast=ast)
             if result == TypeCannotInferred():
                 return TypeCannotInferred()
             type1, type2 = result
@@ -490,6 +506,14 @@ class StaticChecker(BaseVisitor):
             c[ast.method.name].intype[i] = type1
             # argument type update 
             self.direct_infer(e=ast.param[i], inferred_type=type2, c=c)
+
+            # if func call inside the same func declare
+            # update param of declared function in every agument iteration
+            if ast.method.name == list(c.keys())[-1]:
+                for j in range(len(ast.param)):
+                    type1 = c[ast.method.name].intype[j]
+                    type2 = c[list(c.keys())[j]]
+                    c[ast.method.name].intype[j], c[list(c.keys())[j]] = self.mutual_infer(type1=type1, type2=type2, e2=None, isStmt=False, isReturnStmt=False, acceptdoubleUnknown=True, ast=ast)
 
         return c[ast.method.name].restype
 
@@ -564,16 +588,18 @@ class StaticChecker(BaseVisitor):
     
     # Support methods
 
-    def mutual_infer(self, type1, type2, e2, isStmt, isReturnStmt, ast):
+    def mutual_infer(self, type1, type2, e2, isStmt, isReturnStmt, acceptdoubleUnknown, ast):
         if type1 == Unknown() and type2 == Unknown():
-            if isStmt:
-                raise TypeCannotBeInferred(ast)
-            else:
-                return TypeCannotInferred()
+            if not acceptdoubleUnknown:
+                if isStmt:
+                    raise TypeCannotBeInferred(ast)
+                else:
+                    return TypeCannotInferred()
         elif type1 == Unknown() and type2 != Unknown():
             if isReturnStmt:
-                if isinstance(type2, ArrayType) and type2.eletype == Unknown():
-                    raise TypeCannotBeInferred(ast)
+                if not acceptdoubleUnknown:
+                    if isinstance(type2, ArrayType) and type2.eletype == Unknown():
+                        raise TypeCannotBeInferred(ast)
                 type1 = type2
             else:
                 if isinstance(type2, ArrayType):
@@ -601,10 +627,11 @@ class StaticChecker(BaseVisitor):
                     else:
                         raise TypeMismatchInExpression(ast)
                 if type1.eletype == Unknown() and type2.eletype == Unknown():
-                    if isStmt:
-                        raise TypeCannotBeInferred(ast)
-                    else:
-                        return TypeCannotInferred()
+                    if not acceptdoubleUnknown:
+                        if isStmt:
+                            raise TypeCannotBeInferred(ast)
+                        else:
+                            return TypeCannotInferred()
                 elif type1.eletype == Unknown() and type2.eletype != Unknown():
                     type1.eletype = type2.eletype
                 elif type1.eletype != Unknown() and type2.eletype == Unknown():
