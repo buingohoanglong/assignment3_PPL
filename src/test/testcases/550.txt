@@ -1,9 +1,6 @@
-           
+
         Function: main
             Body:
-                Var: x = 1;
-                x = foo();
-                foo();
                 Return;
             EndBody.
         Function: foo

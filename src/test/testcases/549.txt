@@ -1,0 +1,14 @@
+
+        Function: main
+            Body:
+                Var: x;
+                For (x = 0, x < 10, 1) Do
+                    If (x % 2 == 0) Then
+                        Var: y = 1;
+                        Continue;
+                    EndIf.
+                    Return;
+                    Break;
+                EndFor.
+                Return;
+            EndBody.

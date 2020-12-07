@@ -1,0 +1,13 @@
+
+        Function: main
+            Body:
+                Var: x;
+                If (x > 1) Then
+                    x = 1;
+                    Return;
+                ElseIf (x < 1) Then
+                    x = 2;
+                    Return;
+                    x = x + 1;
+                EndIf.
+            EndBody.

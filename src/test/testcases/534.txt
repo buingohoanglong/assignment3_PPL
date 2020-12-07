@@ -1,0 +1,7 @@
+
+        Function: main
+            Body:
+                Var: x[7][3];
+                x[x[4][2]][x[1][4]] = 1;
+                Return;
+            EndBody.

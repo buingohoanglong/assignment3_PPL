@@ -1,0 +1,19 @@
+
+        Function: main
+            Body:
+                foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Return;
+            EndBody.
+        Function: goo
+            Body:
+                Return;
+            EndBody.
+        Function: hoo
+            Body:
+                goo();
+                Return;
+            EndBody.

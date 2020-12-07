@@ -1565,7 +1565,7 @@ class CheckSuite(unittest.TestCase):
                 EndBody.
         Function: main
             Body:
-                print_string_list(string_list);
+                print_string_list(get_string_list(string_list));
                 Return;
             EndBody."""
         expect = str("")
@@ -1716,8 +1716,6 @@ class CheckSuite(unittest.TestCase):
             EndBody."""
         expect = str("")
         self.assertTrue(TestChecker.test(input,expect,499))
-
-
 
 
 
@@ -2138,3 +2136,415 @@ class CheckSuite(unittest.TestCase):
             EndBody."""
         expect = str(IndexOutOfRange(ArrayCell(Id("x"),[BinaryOp("+", IntLiteral(1), UnaryOp("-", IntLiteral(3)))])))
         self.assertTrue(TestChecker.test(input,expect,529))
+
+    def test_index_out_of_range_11(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[10][3], y = 10;
+                y = x[y - 100][3-4];
+                Return;
+            EndBody."""
+        expect = str(IndexOutOfRange(ArrayCell(Id("x"),[BinaryOp("-", Id("y"), IntLiteral(100)), BinaryOp("-", IntLiteral(3), IntLiteral(4))])))
+        self.assertTrue(TestChecker.test(input,expect,530))
+
+    def test_index_out_of_range_12(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[10][3], y = 10;
+                y = x[y - 100][3+4];
+                Return;
+            EndBody."""
+        expect = str(IndexOutOfRange(ArrayCell(Id("x"),[BinaryOp("-", Id("y"), IntLiteral(100)), BinaryOp("+", IntLiteral(3), IntLiteral(4))])))
+        self.assertTrue(TestChecker.test(input,expect,531))
+
+    def test_index_out_of_range_13(self):   # Dimension <= 0 ??? 
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[0][3], y = 10;
+                y = -y;
+                y = x[y][3+4];
+                Return;
+            EndBody."""
+        expect = str(IndexOutOfRange(ArrayCell(Id("x"),[Id("y"), BinaryOp("+", IntLiteral(3), IntLiteral(4))])))
+        self.assertTrue(TestChecker.test(input,expect,532))
+
+    def test_index_out_of_range_14(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[7][3][5];
+                x[3][5][4] = 1;
+                Return;
+            EndBody."""
+        expect = str(IndexOutOfRange(ArrayCell(Id("x"),[IntLiteral(3), IntLiteral(5), IntLiteral(4)])))
+        self.assertTrue(TestChecker.test(input,expect,533))
+
+    def test_index_out_of_range_15(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[7][3];
+                x[x[4][2]][x[1][4]] = 1;
+                Return;
+            EndBody."""
+        expect = str(IndexOutOfRange(ArrayCell(Id("x"),[IntLiteral(1), IntLiteral(4)])))
+        self.assertTrue(TestChecker.test(input,expect,534))
+
+    # Test unreachable statement
+    def test_unreachable_stmt_1(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x;
+                Return;
+                x = 1;
+            EndBody."""
+        expect = str(UnreachableStatement(Assign(Id("x"), IntLiteral(1))))
+        self.assertTrue(TestChecker.test(input,expect,535))  
+
+    def test_unreachable_stmt_2(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x;
+                If (x > 1) Then
+                    x = 1;
+                    Return;
+                Else
+                    x = 2;
+                    Return;
+                    x = x + 1;
+                EndIf.
+            EndBody."""
+        expect = str(UnreachableStatement(Assign(Id("x"), BinaryOp("+", Id("x"), IntLiteral(1)))))
+        self.assertTrue(TestChecker.test(input,expect,536))  
+
+    def test_unreachable_stmt_3(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x;
+                If (x > 1) Then
+                    x = 1;
+                    Return;
+                ElseIf (x < 1) Then
+                    x = 2;
+                    Return;
+                    x = x + 1;
+                EndIf.
+            EndBody."""
+        expect = str(UnreachableStatement(Assign(Id("x"), BinaryOp("+", Id("x"), IntLiteral(1)))))
+        self.assertTrue(TestChecker.test(input,expect,537)) 
+
+    def test_unreachable_stmt_4(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x;
+                If (x > 1) Then
+                    Return;
+                    x = 1;
+                EndIf.
+            EndBody."""
+        expect = str(UnreachableStatement(Assign(Id("x"), IntLiteral(1))))
+        self.assertTrue(TestChecker.test(input,expect,538)) 
+
+    def test_unreachable_stmt_5(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x;
+                While (True) Do
+                    Var: y = 1;
+                    Continue;
+                    x = y + 1;
+                EndWhile.
+                Return;
+            EndBody."""
+        expect = str(UnreachableStatement(Assign(Id("x"), BinaryOp("+", Id("y"), IntLiteral(1)))))
+        self.assertTrue(TestChecker.test(input,expect,539)) 
+
+    def test_unreachable_stmt_6(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x;
+                While (True) Do
+                    Var: y = 1;
+                    Break;
+                    x = y + 1;
+                EndWhile.
+                Return;
+            EndBody."""
+        expect = str(UnreachableStatement(Assign(Id("x"), BinaryOp("+", Id("y"), IntLiteral(1)))))
+        self.assertTrue(TestChecker.test(input,expect,540))
+
+    def test_unreachable_stmt_7(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x;
+                While (True) Do
+                    Var: y = 1;
+                    Return;
+                    x = y + 1;
+                EndWhile.
+                Return;
+            EndBody."""
+        expect = str(UnreachableStatement(Assign(Id("x"), BinaryOp("+", Id("y"), IntLiteral(1)))))
+        self.assertTrue(TestChecker.test(input,expect,541))
+
+    def test_unreachable_stmt_8(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x;
+                Do
+                    Var: y = 1;
+                    Continue;
+                    x = y + 1;
+                While (True)
+                EndDo.
+                Return;
+            EndBody."""
+        expect = str(UnreachableStatement(Assign(Id("x"), BinaryOp("+", Id("y"), IntLiteral(1)))))
+        self.assertTrue(TestChecker.test(input,expect,542)) 
+
+    def test_unreachable_stmt_9(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x;
+                Do
+                    Var: y = 1;
+                    Break;
+                    x = y + 1;
+                While (True)
+                EndDo.
+                Return;
+            EndBody."""
+        expect = str(UnreachableStatement(Assign(Id("x"), BinaryOp("+", Id("y"), IntLiteral(1)))))
+        self.assertTrue(TestChecker.test(input,expect,543))
+
+    def test_unreachable_stmt_10(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x;
+                Do
+                    Var: y = 1;
+                    Return;
+                    x = y + 1;
+                While (True) 
+                EndDo.
+                Return;
+            EndBody."""
+        expect = str(UnreachableStatement(Assign(Id("x"), BinaryOp("+", Id("y"), IntLiteral(1)))))
+        self.assertTrue(TestChecker.test(input,expect,544))
+
+    def test_unreachable_stmt_11(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x;
+                For (x = 0, x < 10, 2) Do
+                    Var: y = 1;
+                    Continue;
+                    x = y + 1;
+                EndFor.
+                Return;
+            EndBody."""
+        expect = str(UnreachableStatement(Assign(Id("x"), BinaryOp("+", Id("y"), IntLiteral(1)))))
+        self.assertTrue(TestChecker.test(input,expect,545)) 
+
+    def test_unreachable_stmt_12(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x;
+                For (x = 0, x < 10, 2) Do
+                    Var: y = 1;
+                    Break;
+                    x = y + 1;
+                EndFor.
+                Return;
+            EndBody."""
+        expect = str(UnreachableStatement(Assign(Id("x"), BinaryOp("+", Id("y"), IntLiteral(1)))))
+        self.assertTrue(TestChecker.test(input,expect,546))
+
+    def test_unreachable_stmt_13(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x;
+                For (x = 0, x < 10, 2) Do
+                    Var: y = 1;
+                    Return;
+                    x = y + 1;
+                EndFor.
+                Return;
+            EndBody."""
+        expect = str(UnreachableStatement(Assign(Id("x"), BinaryOp("+", Id("y"), IntLiteral(1)))))
+        self.assertTrue(TestChecker.test(input,expect,547))
+
+    def test_unreachable_stmt_14(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x;
+                For (x = 0, x < 10, 1) Do
+                    If (x % 2 == 0) Then
+                        Var: y = 1;
+                        Continue;
+                    EndIf.
+                    Break;
+                    Return;
+                EndFor.
+                Return;
+            EndBody."""
+        expect = str(UnreachableStatement(Return(None)))
+        self.assertTrue(TestChecker.test(input,expect,548))
+
+    def test_unreachable_stmt_15(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x;
+                For (x = 0, x < 10, 1) Do
+                    If (x % 2 == 0) Then
+                        Var: y = 1;
+                        Continue;
+                    EndIf.
+                    Return;
+                    Break;
+                EndFor.
+                Return;
+            EndBody."""
+        expect = str(UnreachableStatement(Break()))
+        self.assertTrue(TestChecker.test(input,expect,549))
+
+    # Test unreachable function
+    def test_unreachable_function_1(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Return;
+            EndBody."""
+        expect = str(UnreachableFunction("foo"))
+        self.assertTrue(TestChecker.test(input,expect,550))
+
+    def test_unreachable_function_2(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                goo();
+                Return;
+            EndBody.
+        Function: goo
+            Body:
+                Return;
+            EndBody."""
+        expect = str(UnreachableFunction("foo"))
+        self.assertTrue(TestChecker.test(input,expect,551))
+
+    def test_unreachable_function_3(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Return;
+            EndBody.
+        Function: goo
+            Body:
+                Return;
+            EndBody.
+        Function: hoo
+            Body:
+                goo();
+                Return;
+            EndBody."""
+        expect = str(UnreachableFunction("hoo"))
+        self.assertTrue(TestChecker.test(input,expect,552)) 
+
+    def test_unreachable_function_4(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                goo();
+                Return;
+            EndBody.
+        Function: goo
+            Body:
+                hoo();
+                Return;
+            EndBody.
+        Function: hoo
+            Body:
+                main();
+                Return;
+            EndBody."""
+        expect = str(UnreachableFunction("foo"))
+        self.assertTrue(TestChecker.test(input,expect,553))   
+
+    def test_unreachable_function_5(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                goo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                foo();
+                Return;
+            EndBody.
+        Function: goo
+            Body:
+                Return;
+            EndBody."""
+        expect = str(UnreachableFunction("foo"))
+        self.assertTrue(TestChecker.test(input,expect,554))   

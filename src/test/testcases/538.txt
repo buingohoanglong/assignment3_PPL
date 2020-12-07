@@ -1,0 +1,9 @@
+
+        Function: main
+            Body:
+                Var: x;
+                If (x > 1) Then
+                    Return;
+                    x = 1;
+                EndIf.
+            EndBody.

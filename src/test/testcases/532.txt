@@ -1,0 +1,8 @@
+
+        Function: main
+            Body:
+                Var: x[0][3], y = 10;
+                y = -y;
+                y = x[y][3+4];
+                Return;
+            EndBody.

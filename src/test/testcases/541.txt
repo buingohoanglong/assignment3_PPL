@@ -1,0 +1,11 @@
+
+        Function: main
+            Body:
+                Var: x;
+                While (True) Do
+                    Var: y = 1;
+                    Return;
+                    x = y + 1;
+                EndWhile.
+                Return;
+            EndBody.

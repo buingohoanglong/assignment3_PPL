@@ -51,6 +51,7 @@ class ArrayType(Type):
 class MType:
     intype:List[Type]
     restype:Type
+    isinvoked: bool = False
 
 @dataclass
 class TypeCannotInferred:
@@ -82,6 +83,9 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         return self.visit(self.ast,self.global_envi)
 
     def visitProgram(self,ast, c):
+        for symbol in c:
+            symbol.mtype.isinvoked = True
+
         for decl in ast.decl:
             if isinstance(decl, VarDecl):
                 self.visit(decl, c)
@@ -101,6 +105,13 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         for decl in ast.decl:
             if isinstance(decl, FuncDecl):
                 self.visit(decl, c)
+
+        # check unreachable function
+        for symbol in c:
+            if isinstance(symbol.mtype, MType) and symbol.name != 'main':
+                if symbol.mtype.isinvoked == False:
+                    raise UnreachableFunction(symbol.name)
+
 
 
     def visitVarDecl(self,ast, c):
@@ -147,10 +158,14 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         current_function = self.symbol(ast.name.name, total_envir)
         del total_envir[self.index(ast.name.name, total_envir)]
         total_envir.append(current_function)   # append current function to the end of dictionary
-        for stmt in ast.body[1]:
+        for i in range(len(ast.body[1])):
+            stmt = ast.body[1][i]
             result = self.visit(stmt, total_envir)
-            if isinstance(result, Break) or isinstance(result, Continue):
+            if isinstance(result, Break) or isinstance(result, Continue):   # check not in loop
                 raise NotInLoop(result)
+            if isinstance(stmt, Break) or isinstance(stmt, Continue) or isinstance(stmt, Return): # check unreachable stmt
+                if i < len(ast.body[1]) - 1:
+                    raise UnreachableStatement(ast.body[1][i+1])
 
             # type inference for function parameters
             if isinstance(total_envir[-1].mtype, MType): # current function is not hiden in local scope (by same name variable)
@@ -233,8 +248,12 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
             current_function = self.symbol(current_function_name, total_envir)
             del total_envir[self.index(current_function_name, total_envir)]
             total_envir.append(current_function)   # append current function to the end of dictionary
-            for stmt in ifthenstmt[2]:
+            for i in range(len(ifthenstmt[2])):
+                stmt = ifthenstmt[2][i]
                 result = self.visit(stmt, total_envir)
+                if isinstance(stmt, Break) or isinstance(stmt, Continue) or isinstance(stmt, Return): # check unreachable stmt
+                    if i < len(ifthenstmt[2]) - 1:
+                        raise UnreachableStatement(ifthenstmt[2][i+1])
 
             # update outer environment
             for name in self.nameList(c):
@@ -256,8 +275,12 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         current_function = self.symbol(current_function_name, total_envir)
         del total_envir[self.index(current_function_name, total_envir)]
         total_envir.append(current_function)   # append current function to the end of dictionary
-        for stmt in ast.elseStmt[1]:
+        for i in range(len(ast.elseStmt[1])):
+            stmt = ast.elseStmt[1][i]
             result = self.visit(stmt, total_envir)
+            if isinstance(stmt, Break) or isinstance(stmt, Continue) or isinstance(stmt, Return): # check unreachable stmt
+                if i < len(ast.elseStmt[1]) - 1:
+                    raise UnreachableStatement(ast.elseStmt[1][i+1])
         
         # update outer environment
         for name in self.nameList(c):
@@ -322,8 +345,12 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         current_function = self.symbol(current_function_name, total_envir)
         del total_envir[self.index(current_function_name, total_envir)]
         total_envir.append(current_function)   # append current function to the end of dictionary
-        for stmt in ast.loop[1]:
+        for i in range(len(ast.loop[1])):
+            stmt = ast.loop[1][i]
             self.visit(stmt, total_envir)
+            if isinstance(stmt, Break) or isinstance(stmt, Continue) or isinstance(stmt, Return): # check unreachable stmt
+                if i < len(ast.loop[1]) - 1:
+                    raise UnreachableStatement(ast.loop[1][i+1])
 
         # update outer environment
         for name in self.nameList(c):
@@ -386,8 +413,12 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         current_function = self.symbol(current_function_name, total_envir)
         del total_envir[self.index(current_function_name, total_envir)]
         total_envir.append(current_function)   # append current function to the end of dictionary
-        for stmt in ast.sl[1]:
+        for i in range(len(ast.sl[1])):
+            stmt = ast.sl[1][i]
             self.visit(stmt, total_envir)
+            if isinstance(stmt, Break) or isinstance(stmt, Continue) or isinstance(stmt, Return): # check unreachable stmt
+                if i < len(ast.sl[1]) - 1:
+                    raise UnreachableStatement(ast.sl[1][i+1])
 
         # update outer environment
         for name in self.nameList(c):
@@ -421,8 +452,12 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         current_function = self.symbol(current_function_name, total_envir)
         del total_envir[self.index(current_function_name, total_envir)]
         total_envir.append(current_function)   # append current function to the end of dictionary
-        for stmt in ast.sl[1]:
+        for i in range(len(ast.sl[1])):
+            stmt = ast.sl[1][i]
             self.visit(stmt, total_envir)
+            if isinstance(stmt, Break) or isinstance(stmt, Continue) or isinstance(stmt, Return): # check unreachable stmt
+                if i < len(ast.sl[1]) - 1:
+                    raise UnreachableStatement(ast.sl[1][i+1])
 
         # update outer environment
         for name in self.nameList(c):
@@ -464,6 +499,9 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
             self.symbol(ast.method.name, c).mtype.restype = VoidType()
         if self.symbol(ast.method.name, c).mtype.restype != VoidType():
             raise TypeMismatchInStatement(ast)
+        
+        if ast.method.name != c[-1].name:   # if it is not call by itself
+            self.symbol(ast.method.name, c).mtype.isinvoked = True
 
 
     def visitBinaryOp(self,ast, c):
@@ -551,7 +589,9 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
                     self.symbol(ast.method.name, c).mtype.intype[j], c[j].mtype = self.mutual_infer(type1=type1, type2=type2, e2=None, isStmt=False, isReturnStmt=False, acceptdoubleUnknown=True, ast=ast)
 
                     self.symbol("Current Function", c).mtype.intype[j] = self.symbol(ast.method.name, c).mtype.intype[j]
-
+      
+        if ast.method.name != c[-1].name:   # if it is not call by itself
+            self.symbol(ast.method.name, c).mtype.isinvoked = True
         return self.symbol(ast.method.name, c).mtype.restype
 
     # check Undeclare, check index

@@ -1,12 +1,15 @@
-           
+
         Function: main
             Body:
-                Var: x = 1;
-                x = foo();
-                foo();
+                goo();
                 Return;
             EndBody.
         Function: foo
+            Body:
+                foo();
+                Return;
+            EndBody.
+        Function: goo
             Body:
                 Return;
             EndBody.
