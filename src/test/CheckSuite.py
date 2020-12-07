@@ -2042,3 +2042,99 @@ class CheckSuite(unittest.TestCase):
             EndBody."""
         expect = str(IndexOutOfRange(ArrayCell(Id("x"),[IntLiteral(3)])))
         self.assertTrue(TestChecker.test(input,expect,521))   
+
+    def test_index_out_of_range_3(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[10], y = 10;
+                y = x[5 + 6];
+                Return;
+            EndBody."""
+        expect = str(IndexOutOfRange(ArrayCell(Id("x"),[BinaryOp("+", IntLiteral(5), IntLiteral(6))])))
+        self.assertTrue(TestChecker.test(input,expect,522))   
+    
+    def test_index_out_of_range_4(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[10], y = 10;
+                y = x[5 - 6];
+                Return;
+            EndBody."""
+        expect = str(IndexOutOfRange(ArrayCell(Id("x"),[BinaryOp("-", IntLiteral(5), IntLiteral(6))])))
+        self.assertTrue(TestChecker.test(input,expect,523)) 
+
+    def test_index_out_of_range_5(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[10], y = 10;
+                y = x[5 - 6 + 20];
+                Return;
+            EndBody."""
+        expect = str(IndexOutOfRange(ArrayCell(Id("x"),[BinaryOp("+", BinaryOp("-", IntLiteral(5), IntLiteral(6)), IntLiteral(20))])))
+        self.assertTrue(TestChecker.test(input,expect,524)) 
+
+    def test_index_out_of_range_6(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[10], y = 10;
+                y = x[5 - 10 + 20 \\ 6];
+                Return;
+            EndBody."""
+        expect = str(IndexOutOfRange(ArrayCell(Id("x"),[BinaryOp("+", BinaryOp("-", IntLiteral(5), IntLiteral(10)), BinaryOp("\\", IntLiteral(20), IntLiteral(6)))])))
+        self.assertTrue(TestChecker.test(input,expect,525)) 
+
+    def test_index_out_of_range_7(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[10], y = 10;
+                y = x[5*3-2];
+                Return;
+            EndBody."""
+        expect = str(IndexOutOfRange(ArrayCell(Id("x"),[BinaryOp("-", BinaryOp("*", IntLiteral(5), IntLiteral(3)), IntLiteral(2))])))
+        self.assertTrue(TestChecker.test(input,expect,526))
+
+    def test_index_out_of_range_8(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[10], y = 10;
+                y = x[5\\3-2];
+                Return;
+            EndBody."""
+        expect = str(IndexOutOfRange(ArrayCell(Id("x"),[BinaryOp("-", BinaryOp("\\", IntLiteral(5), IntLiteral(3)), IntLiteral(2))])))
+        self.assertTrue(TestChecker.test(input,expect,527))  
+
+    def test_index_out_of_range_9(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[10], y = 10;
+                y = x[5%4-2];
+                Return;
+            EndBody."""
+        expect = str(IndexOutOfRange(ArrayCell(Id("x"),[BinaryOp("-", BinaryOp("%", IntLiteral(5), IntLiteral(4)), IntLiteral(2))])))
+        self.assertTrue(TestChecker.test(input,expect,528))
+
+    def test_index_out_of_range_10(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[10], y = 10;
+                y = x[1 + -3];
+                Return;
+            EndBody."""
+        expect = str(IndexOutOfRange(ArrayCell(Id("x"),[BinaryOp("+", IntLiteral(1), UnaryOp("-", IntLiteral(3)))])))
+        self.assertTrue(TestChecker.test(input,expect,529))

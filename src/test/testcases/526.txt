@@ -1,0 +1,7 @@
+
+        Function: main
+            Body:
+                Var: x[10], y = 10;
+                y = x[5*3-2];
+                Return;
+            EndBody.
