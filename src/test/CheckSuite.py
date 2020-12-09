@@ -3106,25 +3106,132 @@ class CheckSuite(unittest.TestCase):
         expect = str(FunctionNotReturn("foo"))
         self.assertTrue(TestChecker.test(input,expect,580)) 
 
-    # def test_function_not_return_23(self):
-    #     """Simple program: main"""
-    #     input = """
-    #     Function: foo
-    #         Body:
-    #             Var: x;
-    #             If (x > 1) Then
-    #             Else
-    #                 Return 1;
-    #             EndIf.
-    #         EndBody.
-    #     Function: main
-    #         Body:
-    #             Var: x = 1;
-    #             x = foo();
-    #             Return;
-    #         EndBody."""
-    #     expect = str(FunctionNotReturn("foo"))
-    #     self.assertTrue(TestChecker.test(input,expect,581)) 
+    def test_function_not_return_23(self):
+        """Simple program: main"""
+        input = """
+        Function: foo
+            Body:
+                Var: x;
+                If (x > 1) Then
+                Else
+                    Return 1;
+                EndIf.
+            EndBody.
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody."""
+        expect = str(FunctionNotReturn("foo"))
+        self.assertTrue(TestChecker.test(input,expect,581)) 
+
+    def test_function_not_return_24(self):
+        """Simple program: main"""
+        input = """
+        Function: foo
+            Body:
+                Var: x;
+                If (x > 1) Then
+                Else
+                    Return 1;
+                EndIf.
+                Return 1;
+            EndBody.
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,582)) 
+
+    def test_function_not_return_25(self):
+        """Simple program: main"""
+        input = """
+        Function: foo
+            Body:
+                Var: x;
+                If (x > 1) Then
+                Else
+                    Return;
+                EndIf.
+            EndBody.
+        Function: main
+            Body:
+                Var: x = 1;
+                foo();
+                Return;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,583)) 
+
+    def test_function_not_return_26(self):
+        """Simple program: main"""
+        input = """
+        Function: foo
+            Body:
+                Var: x;
+                If (x > 1) Then
+                    Return;
+                Else
+                EndIf.
+            EndBody.
+        Function: main
+            Body:
+                Var: x = 1;
+                foo();
+                Return;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,584)) 
+
+    def test_function_not_return_27(self):
+        """Simple program: main"""
+        input = """
+        Function: foo
+            Body:
+                Var: x;
+                If (x > 1) Then         
+                ElseIf (x < 1) Then
+                    Return 1;
+                Else
+                    Return 2;
+                EndIf.
+            EndBody.
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody."""
+        expect = str(FunctionNotReturn("foo"))
+        self.assertTrue(TestChecker.test(input,expect,585)) 
+
+    def test_function_not_return_28(self):
+        """Simple program: main"""
+        input = """
+        Function: foo
+            Body:
+                Var: x;
+                If (x > 1) Then         
+                ElseIf (x < 1) Then
+                    Return 1;
+                Else
+                    Return 2;
+                EndIf.
+                Return 3;
+            EndBody.
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,586)) 
+
 
     # VoidType inference
     def test_voidtype_inference_1(self):
@@ -3140,7 +3247,7 @@ class CheckSuite(unittest.TestCase):
                 Return;
             EndBody."""
         expect = str(TypeMismatchInStatement(Assign(Id("x"), CallExpr(Id("foo"), []))))
-        self.assertTrue(TestChecker.test(input,expect,581))   
+        self.assertTrue(TestChecker.test(input,expect,587))   
 
     def test_voidtype_inference_2(self):
         """Simple program: main"""
@@ -3159,7 +3266,7 @@ class CheckSuite(unittest.TestCase):
                 Return;
             EndBody."""
         expect = str(TypeMismatchInStatement(Assign(Id("x"), CallExpr(Id("foo"), []))))
-        self.assertTrue(TestChecker.test(input,expect,582)) 
+        self.assertTrue(TestChecker.test(input,expect,588)) 
 
     def test_voidtype_inference_3(self):
         """Simple program: main"""
@@ -3178,4 +3285,162 @@ class CheckSuite(unittest.TestCase):
                 Return;
             EndBody."""
         expect = str("")
-        self.assertTrue(TestChecker.test(input,expect,583)) 
+        self.assertTrue(TestChecker.test(input,expect,589)) 
+
+    # Test valid array indexing
+    def test_valid_array_indexing_1(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[7][3];
+                x[x[4][2]][x[1][2]] = 1;
+                Return;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,590))
+
+    def test_valid_array_indexing_2(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[7][10];
+                x[x[2][3]][(3 - 7) * 9 % 3  % (2 \\ 10 + 9) * 8 - -7] = 1;
+                Return;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,591))
+
+    def test_valid_array_indexing_3(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[7][100];
+                x[x[2][3]][(3 - 7) * 12 - 37 * 45  % (10 \\ 2 + 9) * -------8] = 1;
+                Return;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,592))
+
+    def test_valid_array_indexing_4(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[7][10];
+                x[x[2][3]][(3 - 7) * 12 - 37 * 45 + x[1][2]  % (10 \\ 2 + 9) * -------8] = 1;
+                Return;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,593))
+
+    def test_valid_array_indexing_5(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x[2][3][4], y, z;
+                x[y][2][z] = 1;
+                Return;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,594))
+
+    # Test reachable function
+    def test_reachable_function_1(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                foo();
+            EndBody.
+        Function: foo
+            Body:
+                goo();
+            EndBody.
+        Function: goo
+            Body:
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,595)) 
+
+    def test_reachable_function_2(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                foo();
+            EndBody.
+        Function: foo
+            Body:
+                foo();
+                goo();
+            EndBody.
+        Function: goo
+            Body:
+                goo();
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,596)) 
+
+    # Test valid Break/Continue in loop
+    def test_valid_in_loop_1(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                While (True) Do
+                    If (True) Then
+                        If (False) Then
+                        ElseIf (True) Then
+                            Break;
+                        EndIf.
+                    EndIf.
+                EndWhile.
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,597))  
+
+    def test_valid_in_loop_2(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                While (True) Do
+                    If (True) Then
+                        If (False) Then
+                        ElseIf (True) Then
+                        Else
+                            Continue;
+                        EndIf.
+                    EndIf.
+                EndWhile.
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,598))       
+
+    def test_valid_in_loop_3(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                While (True) Do
+                    If (True) Then
+                        If (False) Then
+                            If (True) Then
+                                Break;
+                            Else
+                                Continue;
+                            EndIf.
+                        ElseIf (True) Then
+                            Break;
+                        Else
+                            Continue;
+                        EndIf.
+                    EndIf.
+                EndWhile.
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,599))

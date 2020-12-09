@@ -3,7 +3,6 @@
             Body:
                 Var: x;
                 If (x > 1) Then
-                    Return;
                 Else
                 EndIf.
             EndBody.

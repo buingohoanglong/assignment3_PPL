@@ -1,6 +1,11 @@
 
         Function: foo
             Body:
+                Var: x;
+                If (x > 1) Then
+                Else
+                    Return 1;
+                EndIf.
             EndBody.
         Function: main
             Body:

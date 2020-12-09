@@ -4,7 +4,9 @@
                 Var: x;
                 If (x > 1) Then
                 Else
+                    Return 1;
                 EndIf.
+                Return 1;
             EndBody.
         Function: main
             Body:

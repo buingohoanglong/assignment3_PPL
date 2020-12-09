@@ -4,8 +4,15 @@
                 While (True) Do
                     If (True) Then
                         If (False) Then
+                            If (True) Then
+                                Break;
+                            Else
+                                Continue;
+                            EndIf.
                         ElseIf (True) Then
                             Break;
+                        Else
+                            Continue;
                         EndIf.
                     EndIf.
                 EndWhile.

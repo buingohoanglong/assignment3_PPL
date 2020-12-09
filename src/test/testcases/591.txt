@@ -1,0 +1,7 @@
+
+        Function: main
+            Body:
+                Var: x[7][10];
+                x[x[2][3]][(3 - 7) * 9 % 3  % (2 \ 10 + 9) * 8 - -7] = 1;
+                Return;
+            EndBody.
