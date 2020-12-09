@@ -1,0 +1,17 @@
+
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                If (True) Then
+                    Return 1;
+                ElseIf (False) Then
+                    Var: x = 1;
+                    Return 2;
+                EndIf.
+                Return 3;
+            EndBody.

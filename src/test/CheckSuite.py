@@ -2548,3 +2548,634 @@ class CheckSuite(unittest.TestCase):
             EndBody."""
         expect = str(UnreachableFunction("foo"))
         self.assertTrue(TestChecker.test(input,expect,554))   
+
+    def test_unreachable_function_6(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Var: x = 1;
+                x = goo();
+                Return;
+            EndBody.
+        Function: goo
+            Body:
+                Return 1;
+            EndBody."""
+        expect = str(UnreachableFunction("foo"))
+        self.assertTrue(TestChecker.test(input,expect,555))
+
+    def test_unreachable_function_7(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Return 1;
+            EndBody.
+        Function: goo
+            Body:
+                Return 1;
+            EndBody.
+        Function: hoo
+            Body:
+                Var: x;
+                x = goo();
+                Return;
+            EndBody."""
+        expect = str(UnreachableFunction("hoo"))
+        self.assertTrue(TestChecker.test(input,expect,556)) 
+
+    def test_unreachable_function_8(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Var: x = 1;
+                x = goo();
+                Return;
+            EndBody.
+        Function: goo
+            Body:
+                Return hoo();
+            EndBody.
+        Function: hoo
+            Body:
+                main();
+                Return 1;
+            EndBody."""
+        expect = str(UnreachableFunction("foo"))
+        self.assertTrue(TestChecker.test(input,expect,557))   
+
+    def test_unreachable_function_9(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x = 1;
+                x = goo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return foo();
+            EndBody.
+        Function: goo
+            Body:
+                Return 1;
+            EndBody."""
+        expect = str(UnreachableFunction("foo"))
+        self.assertTrue(TestChecker.test(input,expect,558)) 
+
+    # Test function not return
+    def test_function_not_return_1(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+            EndBody."""
+        expect = str(FunctionNotReturn("foo"))
+        self.assertTrue(TestChecker.test(input,expect,559))    
+
+    def test_function_not_return_2(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                If (True) Then
+                    Return 1;
+                ElseIf (False) Then
+                    Var: x = 1;
+                EndIf.
+            EndBody."""
+        expect = str(FunctionNotReturn("foo"))
+        self.assertTrue(TestChecker.test(input,expect,560))   
+
+    def test_function_not_return_3(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                If (True) Then
+                    Return 1;
+                ElseIf (False) Then
+                    Var: x = 1;
+                EndIf.
+                Return 1;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,561))
+
+    def test_function_not_return_4(self):   # ???
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                If (True) Then
+                    Return 1;
+                ElseIf (False) Then
+                    Var: x = 1;
+                    Return 2;
+                EndIf.
+            EndBody."""
+        expect = str(FunctionNotReturn("foo"))
+        self.assertTrue(TestChecker.test(input,expect,562))
+
+    def test_function_not_return_5(self):   # ???
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                If (True) Then
+                    Return 1;
+                ElseIf (False) Then
+                    Var: x = 1;
+                    Return 2;
+                EndIf.
+                Return 3;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,563))  
+
+    def test_function_not_return_6(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Return 1;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,564))  
+
+    def test_function_not_return_7(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Var: x;
+                If ( x > 1) Then
+                    Return 1;
+                Else
+                    Var: x = 1;
+                    Return 2;
+                EndIf.
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,565))  
+
+    def test_function_not_return_8(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Var: x;
+                If ( x > 1) Then
+                    Return 1;
+                ElseIf (x < 1) Then
+                Else
+                    Var: x = 1;
+                    Return 2;
+                EndIf.
+            EndBody."""
+        expect = str(FunctionNotReturn("foo"))
+        self.assertTrue(TestChecker.test(input,expect,566)) 
+
+    def test_function_not_return_9(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Var: x;
+                If ( x > 1) Then
+                    Return 1;
+                ElseIf (x < 1) Then
+                Else
+                    Var: x = 1;
+                    Return 2;
+                EndIf.
+                Return 1;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,567)) 
+
+    def test_function_not_return_10(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Var: x;
+                If ( x > 1) Then
+                ElseIf (x < 1) Then
+                Else
+                    Var: x = 1;
+                    Return 2;
+                EndIf.
+            EndBody."""
+        expect = str(FunctionNotReturn("foo"))
+        self.assertTrue(TestChecker.test(input,expect,568)) 
+
+    def test_function_not_return_11(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Var: x;
+                If ( x > 1) Then
+                ElseIf (x < 1) Then
+                Else
+                    Var: x = 1;
+                    Return 2;
+                EndIf.
+                Return 1;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,569)) 
+
+    def test_function_not_return_12(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Var: x;
+                If ( x > 1) Then
+                Else
+                    Var: x = 1;
+                    Return 2;
+                EndIf.
+            EndBody."""
+        expect = str(FunctionNotReturn("foo"))
+        self.assertTrue(TestChecker.test(input,expect,570)) 
+
+    def test_function_not_return_13(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Var: x;
+                If ( x > 1) Then
+                Else
+                    Var: x = 1;
+                    Return 2;
+                EndIf.
+                Return 1;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,571)) 
+
+    def test_function_not_return_14(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Var: x;
+                If ( x > 1) Then
+                    Return 1;
+                Else
+                    Var: x = 1;
+                EndIf.
+            EndBody."""
+        expect = str(FunctionNotReturn("foo"))
+        self.assertTrue(TestChecker.test(input,expect,572)) 
+
+    def test_function_not_return_15(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Var: x;
+                If ( x > 1) Then
+                    Return 1;
+                Else
+                    Var: x = 1;
+                EndIf.
+                Return 1;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,573)) 
+
+    def test_function_not_return_16(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Var: x;
+                If ( x > 1) Then
+                    Return 1;
+                Else
+                EndIf.
+            EndBody."""
+        expect = str(FunctionNotReturn("foo"))
+        self.assertTrue(TestChecker.test(input,expect,574)) 
+
+    def test_function_not_return_17(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Var: x;
+                If ( x > 1) Then
+                    Return 1;
+                Else
+                EndIf.
+                Return 1;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,575))
+
+    def test_function_not_return_18(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Var: x;
+                If ( x > 1) Then
+                    Return 1;
+                ElseIf (x < 1) Then
+                    Return 2;
+                Else
+                    Return 3;
+                EndIf.
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,576))
+
+    def test_function_not_return_19(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Var: x;
+                If ( x > 1) Then
+                    Return 1;
+                Else
+                    Return 2;
+                EndIf.
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,577))
+
+    def test_function_not_return_20(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Var: x;
+                If ( x > 1) Then
+                    Var: y = 1;
+                Else
+                    Var: y = 2;
+                EndIf.
+            EndBody."""
+        expect = str(FunctionNotReturn("foo"))
+        self.assertTrue(TestChecker.test(input,expect,578))
+
+    def test_function_not_return_21(self):
+        """Simple program: main"""
+        input = """
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Var: x;
+                If ( x > 1) Then
+                    Var: y = 1;
+                Else
+                    Var: y = 2;
+                EndIf.
+                Return 1;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,579))
+
+    def test_function_not_return_22(self):
+        """Simple program: main"""
+        input = """
+        Function: foo
+            Body:
+                Var: x;
+                If (x > 1) Then
+                    Return 1;
+                Else
+                EndIf.
+            EndBody.
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody."""
+        expect = str(FunctionNotReturn("foo"))
+        self.assertTrue(TestChecker.test(input,expect,580)) 
+
+    # def test_function_not_return_23(self):
+    #     """Simple program: main"""
+    #     input = """
+    #     Function: foo
+    #         Body:
+    #             Var: x;
+    #             If (x > 1) Then
+    #             Else
+    #                 Return 1;
+    #             EndIf.
+    #         EndBody.
+    #     Function: main
+    #         Body:
+    #             Var: x = 1;
+    #             x = foo();
+    #             Return;
+    #         EndBody."""
+    #     expect = str(FunctionNotReturn("foo"))
+    #     self.assertTrue(TestChecker.test(input,expect,581)) 
+
+    # VoidType inference
+    def test_voidtype_inference_1(self):
+        """Simple program: main"""
+        input = """
+        Function: foo
+            Body:
+            EndBody.
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody."""
+        expect = str(TypeMismatchInStatement(Assign(Id("x"), CallExpr(Id("foo"), []))))
+        self.assertTrue(TestChecker.test(input,expect,581))   
+
+    def test_voidtype_inference_2(self):
+        """Simple program: main"""
+        input = """
+        Function: foo
+            Body:
+                Var: x;
+                If (x > 1) Then
+                Else
+                EndIf.
+            EndBody.
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody."""
+        expect = str(TypeMismatchInStatement(Assign(Id("x"), CallExpr(Id("foo"), []))))
+        self.assertTrue(TestChecker.test(input,expect,582)) 
+
+    def test_voidtype_inference_3(self):
+        """Simple program: main"""
+        input = """
+        Function: foo
+            Body:
+                Var: x;
+                If (x > 1) Then
+                Else
+                EndIf.
+            EndBody.
+        Function: main
+            Body:
+                Var: x = 1;
+                foo();
+                Return;
+            EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,583)) 

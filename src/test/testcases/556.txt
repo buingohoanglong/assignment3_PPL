@@ -1,0 +1,21 @@
+
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Return 1;
+            EndBody.
+        Function: goo
+            Body:
+                Return 1;
+            EndBody.
+        Function: hoo
+            Body:
+                Var: x;
+                x = goo();
+                Return;
+            EndBody.

@@ -1,0 +1,17 @@
+
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody.
+        Function: foo
+            Body:
+                Var: x;
+                If ( x > 1) Then
+                    Return 1;
+                Else
+                    Var: x = 1;
+                EndIf.
+                Return 1;
+            EndBody.

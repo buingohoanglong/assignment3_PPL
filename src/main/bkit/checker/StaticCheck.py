@@ -52,6 +52,7 @@ class MType:
     intype:List[Type]
     restype:Type
     isinvoked: bool = False
+    notReturn: bool = False
 
 @dataclass
 class TypeCannotInferred:
@@ -158,6 +159,11 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         current_function = self.symbol(ast.name.name, total_envir)
         del total_envir[self.index(ast.name.name, total_envir)]
         total_envir.append(current_function)   # append current function to the end of dictionary
+        # code for function not return
+        current_function = self.symbol("Current Function", total_envir)
+        if not isinstance(current_function.mtype.restype, VoidType) and not isinstance(current_function.mtype.restype, Unknown):
+            current_function.mtype.notReturn = True
+        # visit stmt
         for i in range(len(ast.body[1])):
             stmt = ast.body[1][i]
             result = self.visit(stmt, total_envir)
@@ -194,11 +200,17 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
                 
                     # if type1 != type2: # does this happen ???
                     #     raise TypeMismatchInStatement(stmt)
-        
+
         # update global environment
         for name in self.nameList(c):
             if name not in self.nameList(local_envir):
                 self.symbol(name, c).mtype = self.symbol(name, total_envir).mtype
+
+        # check function not return
+        if self.symbol("Current Function", total_envir).mtype.notReturn:
+            raise FunctionNotReturn(total_envir[-1].name)
+        if self.symbol(total_envir[-1].name, c).mtype.restype == Unknown():
+            self.symbol(total_envir[-1].name, c).mtype.restype = VoidType()
 
     def visitAssign(self,ast, c):   # left hand side can be in any type except VoidType (what about MType ???)
         ltype = self.visit(ast.lhs, c)
@@ -220,6 +232,7 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
     def visitIf(self,ast, c):
         result = None   # used to detect not in loop
         current_function_name = c[-1].name
+        return_lst = [] # used to detect function not return
         for ifthenstmt in ast.ifthenStmt:
             # visit condition expression
             exptype = self.visit(ifthenstmt[0], c)
@@ -248,6 +261,11 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
             current_function = self.symbol(current_function_name, total_envir)
             del total_envir[self.index(current_function_name, total_envir)]
             total_envir.append(current_function)   # append current function to the end of dictionary
+            # code for function not return
+            current_function = self.symbol("Current Function", total_envir)
+            if not isinstance(current_function.mtype.restype, VoidType) and not isinstance(current_function.mtype.restype, Unknown):
+                current_function.mtype.notReturn = True
+            # visit stmt
             for i in range(len(ifthenstmt[2])):
                 stmt = ifthenstmt[2][i]
                 result = self.visit(stmt, total_envir)
@@ -259,6 +277,9 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
             for name in self.nameList(c):
                 if name not in self.nameList(local_envir):
                     self.symbol(name, c).mtype = self.symbol(name, total_envir).mtype
+            
+            return_lst.append(self.symbol("Current Function", total_envir).mtype.notReturn)
+
         
         # visit else local var declare
         local_envir = []
@@ -275,6 +296,11 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         current_function = self.symbol(current_function_name, total_envir)
         del total_envir[self.index(current_function_name, total_envir)]
         total_envir.append(current_function)   # append current function to the end of dictionary
+        # code for function not return
+        current_function = self.symbol("Current Function", total_envir)
+        if not isinstance(current_function.mtype.restype, VoidType) and not isinstance(current_function.mtype.restype, Unknown):
+            current_function.mtype.notReturn = True
+        # visit stmt
         for i in range(len(ast.elseStmt[1])):
             stmt = ast.elseStmt[1][i]
             result = self.visit(stmt, total_envir)
@@ -286,6 +312,12 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         for name in self.nameList(c):
             if name not in self.nameList(local_envir):
                 self.symbol(name, c).mtype = self.symbol(name, total_envir).mtype
+
+        return_lst.append(self.symbol("Current Function", total_envir).mtype.notReturn)
+        return_state = return_lst[0]
+        for i in range(len(return_lst)):
+            if return_state != return_lst[i]:
+                self.symbol("Current Function", total_envir).mtype.notReturn = True
 
         return result
     
@@ -384,6 +416,9 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
             self.symbol(c[-1].name, c).mtype.restype = current_returntype
         # expr type update 
         self.direct_infer(e=ast.expr, inferred_type=returntype, c=c)
+
+        
+        self.symbol("Current Function", c).mtype.notReturn = False
 
 
     def visitDowhile(self,ast, c):
