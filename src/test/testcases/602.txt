@@ -1,14 +1,8 @@
 
-        Function: foo
-            Body:
-                Var: x;
-                For (x = 1, x < 10, 2) Do
-                    Return 1;
-                EndFor.
-            EndBody.
         Function: main
+            Parameter: x
             Body:
-                Var: x = 1;
-                x = foo();
-                Return;
+                If (main(main(5))) Then
+                EndIf.
+                Return True;
             EndBody.

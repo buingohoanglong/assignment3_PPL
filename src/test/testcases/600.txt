@@ -1,14 +1,11 @@
 
-        Function: foo
-            Body:
-                Var: x;
-                While (x > 1) Do
-                    Return 1;
-                EndWhile.
-            EndBody.
         Function: main
             Body:
-                Var: x = 1;
-                x = foo();
-                Return;
+                Var: x;
+                If (x > 1) Then
+                    Return;
+                Else
+                    Return;
+                EndIf.
+                x = 1;
             EndBody.

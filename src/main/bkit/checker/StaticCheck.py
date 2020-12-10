@@ -501,16 +501,6 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
 
 
     def visitDowhile(self,ast, c):
-        # visit expression
-        exptype = self.visit(ast.exp, c)
-        if exptype == TypeCannotInferred():
-            raise TypeCannotBeInferred(ast)
-        if exptype == Unknown():    # exp is Id, CallExpr, ArrayCell
-            exptype = BoolType()
-            self.direct_infer(e=ast.exp, inferred_type=exptype, c=c)
-        if exptype != BoolType():
-            raise TypeMismatchInStatement(ast)
-
         # visit local (DoWhile body) var declare
         local_envir = []
         for vardecl in ast.sl[0]:
@@ -533,6 +523,16 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
             if isinstance(stmt, Break) or isinstance(stmt, Continue) or isinstance(stmt, Return): # check unreachable stmt
                 if i < len(ast.sl[1]) - 1:
                     raise UnreachableStatement(ast.sl[1][i+1])
+
+        # visit expression
+        exptype = self.visit(ast.exp, c)
+        if exptype == TypeCannotInferred():
+            raise TypeCannotBeInferred(ast)
+        if exptype == Unknown():    # exp is Id, CallExpr, ArrayCell
+            exptype = BoolType()
+            self.direct_infer(e=ast.exp, inferred_type=exptype, c=c)
+        if exptype != BoolType():
+            raise TypeMismatchInStatement(ast)
 
         # update outer environment
         for name in self.nameList(c):
@@ -683,7 +683,7 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         if len(ast.param) != len(self.symbol(ast.method.name, c).mtype.intype):
             raise TypeMismatchInExpression(ast)
         for i in range(len(ast.param)):
-            # type1 = c[ast.method.name].intype[i]    # param type
+            # type1 = self.symbol(ast.method.name, c).mtype.intype[i]    # param type
             type2 = self.visit(ast.param[i], c)     # argument type
             if type2 == TypeCannotInferred():
                 return TypeCannotInferred()
