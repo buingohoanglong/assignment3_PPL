@@ -1,12 +1,7 @@
 
         Function: main
             Body:
-                foo();
-            EndBody.
-        Function: foo
-            Body:
-                goo();
-            EndBody.
-        Function: goo
-            Body:
+                Var: x[7][100];
+                x[x[2][3]][(3 - 7) * 12 - 37 * 45  % (10 \ 2 + 9) * -------8] = 1;
+                Return;
             EndBody.

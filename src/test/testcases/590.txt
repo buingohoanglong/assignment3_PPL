@@ -1,7 +1,10 @@
 
+        Function: foo
+            Body:
+            EndBody.
         Function: main
             Body:
-                Var: x[7][3];
-                x[x[4][2]][x[1][2]] = 1;
+                Var: x = 1;
+                x = foo();
                 Return;
             EndBody.

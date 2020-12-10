@@ -207,10 +207,12 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
                 self.symbol(name, c).mtype = self.symbol(name, total_envir).mtype
 
         # check function not return
-        if self.symbol("Current Function", total_envir).mtype.notReturn:
-            raise FunctionNotReturn(total_envir[-1].name)
         if self.symbol(total_envir[-1].name, c).mtype.restype == Unknown():
             self.symbol(total_envir[-1].name, c).mtype.restype = VoidType()
+        else:
+            if self.symbol("Current Function", total_envir).mtype.notReturn:
+                if self.symbol(total_envir[-1].name, c).mtype.restype != VoidType():
+                    raise FunctionNotReturn(total_envir[-1].name)
 
     def visitAssign(self,ast, c):   # left hand side can be in any type except VoidType (what about MType ???)
         ltype = self.visit(ast.lhs, c)
@@ -464,6 +466,8 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
             if name not in self.nameList(local_envir):
                 self.symbol(name, c).mtype = self.symbol(name, total_envir).mtype
 
+        self.symbol("Current Function", total_envir).mtype.notReturn = True
+
 
     def visitBreak(self,ast, c):
         return Break()
@@ -535,6 +539,8 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
             if name not in self.nameList(local_envir):
                 self.symbol(name, c).mtype = self.symbol(name, total_envir).mtype
 
+        self.symbol("Current Function", total_envir).mtype.notReturn = True
+
     def visitWhile(self,ast, c):
         # visit expression
         exptype = self.visit(ast.exp, c)
@@ -573,6 +579,8 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         for name in self.nameList(c):
             if name not in self.nameList(local_envir):
                 self.symbol(name, c).mtype = self.symbol(name, total_envir).mtype
+
+        self.symbol("Current Function", total_envir).mtype.notReturn = True
 
     def visitCallStmt(self,ast, c):
         if ast.method.name not in self.nameList(c):

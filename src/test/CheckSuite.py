@@ -741,6 +741,7 @@ class CheckSuite(unittest.TestCase):
                     x = {4,5,6};
                     Return 1;
                 EndWhile.
+                Return 1;
             EndBody.
         Function: main
             Body:
@@ -765,6 +766,7 @@ class CheckSuite(unittest.TestCase):
                     x = {4,5,6};
                     Return 1;
                 EndWhile.
+                Return 1;
             EndBody.
         Function: main
             Body:
@@ -3232,6 +3234,64 @@ class CheckSuite(unittest.TestCase):
         expect = str("")
         self.assertTrue(TestChecker.test(input,expect,586)) 
 
+    def test_function_not_return_29(self):
+        """Simple program: main"""
+        input = """
+        Function: foo
+            Body:
+                Var: x;
+                While (x > 1) Do
+                    Return 1;
+                EndWhile.
+            EndBody.
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody."""
+        expect = str(FunctionNotReturn("foo"))
+        self.assertTrue(TestChecker.test(input,expect,587))
+
+    def test_function_not_return_30(self):
+        """Simple program: main"""
+        input = """
+        Function: foo
+            Body:
+                Var: x;
+                Do
+                    Return 1;
+                While (x > 1)
+                EndDo.
+            EndBody.
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody."""
+        expect = str(FunctionNotReturn("foo"))
+        self.assertTrue(TestChecker.test(input,expect,588))
+
+    def test_function_not_return_31(self):
+        """Simple program: main"""
+        input = """
+        Function: foo
+            Body:
+                Var: x;
+                For (x = 1, x < 10, 2) Do
+                    Return 1;
+                EndFor.
+            EndBody.
+        Function: main
+            Body:
+                Var: x = 1;
+                x = foo();
+                Return;
+            EndBody."""
+        expect = str(FunctionNotReturn("foo"))
+        self.assertTrue(TestChecker.test(input,expect,589))
+
 
     # VoidType inference
     def test_voidtype_inference_1(self):
@@ -3247,7 +3307,7 @@ class CheckSuite(unittest.TestCase):
                 Return;
             EndBody."""
         expect = str(TypeMismatchInStatement(Assign(Id("x"), CallExpr(Id("foo"), []))))
-        self.assertTrue(TestChecker.test(input,expect,587))   
+        self.assertTrue(TestChecker.test(input,expect,590))   
 
     def test_voidtype_inference_2(self):
         """Simple program: main"""
@@ -3266,7 +3326,7 @@ class CheckSuite(unittest.TestCase):
                 Return;
             EndBody."""
         expect = str(TypeMismatchInStatement(Assign(Id("x"), CallExpr(Id("foo"), []))))
-        self.assertTrue(TestChecker.test(input,expect,588)) 
+        self.assertTrue(TestChecker.test(input,expect,591)) 
 
     def test_voidtype_inference_3(self):
         """Simple program: main"""
@@ -3285,7 +3345,7 @@ class CheckSuite(unittest.TestCase):
                 Return;
             EndBody."""
         expect = str("")
-        self.assertTrue(TestChecker.test(input,expect,589)) 
+        self.assertTrue(TestChecker.test(input,expect,592)) 
 
     # Test valid array indexing
     def test_valid_array_indexing_1(self):
@@ -3298,7 +3358,7 @@ class CheckSuite(unittest.TestCase):
                 Return;
             EndBody."""
         expect = str("")
-        self.assertTrue(TestChecker.test(input,expect,590))
+        self.assertTrue(TestChecker.test(input,expect,593))
 
     def test_valid_array_indexing_2(self):
         """Simple program: main"""
@@ -3310,7 +3370,7 @@ class CheckSuite(unittest.TestCase):
                 Return;
             EndBody."""
         expect = str("")
-        self.assertTrue(TestChecker.test(input,expect,591))
+        self.assertTrue(TestChecker.test(input,expect,594))
 
     def test_valid_array_indexing_3(self):
         """Simple program: main"""
@@ -3322,7 +3382,7 @@ class CheckSuite(unittest.TestCase):
                 Return;
             EndBody."""
         expect = str("")
-        self.assertTrue(TestChecker.test(input,expect,592))
+        self.assertTrue(TestChecker.test(input,expect,595))
 
     def test_valid_array_indexing_4(self):
         """Simple program: main"""
@@ -3334,7 +3394,7 @@ class CheckSuite(unittest.TestCase):
                 Return;
             EndBody."""
         expect = str("")
-        self.assertTrue(TestChecker.test(input,expect,593))
+        self.assertTrue(TestChecker.test(input,expect,596))
 
     def test_valid_array_indexing_5(self):
         """Simple program: main"""
@@ -3346,44 +3406,8 @@ class CheckSuite(unittest.TestCase):
                 Return;
             EndBody."""
         expect = str("")
-        self.assertTrue(TestChecker.test(input,expect,594))
+        self.assertTrue(TestChecker.test(input,expect,597))
 
-    # Test reachable function
-    def test_reachable_function_1(self):
-        """Simple program: main"""
-        input = """
-        Function: main
-            Body:
-                foo();
-            EndBody.
-        Function: foo
-            Body:
-                goo();
-            EndBody.
-        Function: goo
-            Body:
-            EndBody."""
-        expect = str("")
-        self.assertTrue(TestChecker.test(input,expect,595)) 
-
-    def test_reachable_function_2(self):
-        """Simple program: main"""
-        input = """
-        Function: main
-            Body:
-                foo();
-            EndBody.
-        Function: foo
-            Body:
-                foo();
-                goo();
-            EndBody.
-        Function: goo
-            Body:
-                goo();
-            EndBody."""
-        expect = str("")
-        self.assertTrue(TestChecker.test(input,expect,596)) 
 
     # Test valid Break/Continue in loop
     def test_valid_in_loop_1(self):
@@ -3401,7 +3425,7 @@ class CheckSuite(unittest.TestCase):
                 EndWhile.
             EndBody."""
         expect = str("")
-        self.assertTrue(TestChecker.test(input,expect,597))  
+        self.assertTrue(TestChecker.test(input,expect,598))  
 
     def test_valid_in_loop_2(self):
         """Simple program: main"""
@@ -3412,30 +3436,6 @@ class CheckSuite(unittest.TestCase):
                     If (True) Then
                         If (False) Then
                         ElseIf (True) Then
-                        Else
-                            Continue;
-                        EndIf.
-                    EndIf.
-                EndWhile.
-            EndBody."""
-        expect = str("")
-        self.assertTrue(TestChecker.test(input,expect,598))       
-
-    def test_valid_in_loop_3(self):
-        """Simple program: main"""
-        input = """
-        Function: main
-            Body:
-                While (True) Do
-                    If (True) Then
-                        If (False) Then
-                            If (True) Then
-                                Break;
-                            Else
-                                Continue;
-                            EndIf.
-                        ElseIf (True) Then
-                            Break;
                         Else
                             Continue;
                         EndIf.

@@ -1,6 +1,10 @@
 
         Function: foo
             Body:
+                Var: x;
+                While (x > 1) Do
+                    Return 1;
+                EndWhile.
             EndBody.
         Function: main
             Body:

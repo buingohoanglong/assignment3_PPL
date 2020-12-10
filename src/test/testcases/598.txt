@@ -5,8 +5,7 @@
                     If (True) Then
                         If (False) Then
                         ElseIf (True) Then
-                        Else
-                            Continue;
+                            Break;
                         EndIf.
                     EndIf.
                 EndWhile.
