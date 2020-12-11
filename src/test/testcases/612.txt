@@ -1,0 +1,10 @@
+Function: main 
+        Parameter: varrr
+        Body:
+            Var: x =1, i;
+            If (i > 1) Then
+                Var: x =1.5;
+                x= x+.1.5;
+            EndIf.
+            x = 1.5;
+        EndBody.

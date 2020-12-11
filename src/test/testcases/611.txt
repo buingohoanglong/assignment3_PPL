@@ -1,0 +1,10 @@
+Function: main 
+        Parameter: varrr
+        Body:
+            Var: x =1, i;
+            For (i = 1, i< 2, 1) Do
+                Var: x =1.5;
+                x= x+.1.5;
+            EndFor.
+            x = 1.5;
+        EndBody.

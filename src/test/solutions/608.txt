@@ -1,1 +1,1 @@
-Function Not Return: main
+Type Mismatch In Statement: CallStmt(Id(foo),[CallExpr(Id(foo),[IntLiteral(10)])])

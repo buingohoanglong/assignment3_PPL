@@ -9,6 +9,7 @@ from AST import *
 from Visitor import *
 from StaticError import *
 from functools import *
+from copy import deepcopy
 
 class Type(ABC):
     __metaclass__ = ABCMeta
@@ -96,7 +97,7 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
                 if funcname in self.nameList(c):
                     raise Redeclared(Function(), funcname)
                 for param in decl.param:
-                    paramtype = Unknown() if param.varDimen == [] else ArrayType(param.varDimen.copy(), Unknown())
+                    paramtype = Unknown() if param.varDimen == [] else ArrayType(deepcopy(param.varDimen), Unknown())
                     intype_lst.append(paramtype)
                 c.append(Symbol(funcname, MType(intype_lst, Unknown())))
 
@@ -122,7 +123,7 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         idtype = Unknown() if not ast.varInit else self.visit(ast.varInit, c)
         if ast.varDimen != []:
             if idtype == Unknown():
-                idtype = ArrayType(ast.varDimen.copy(), Unknown())
+                idtype = ArrayType(deepcopy(ast.varDimen), Unknown())
             else:
                 if ast.varDimen != idtype.dimen:
                     raise TypeMismatchInExpression(ast.varInit) # ???
@@ -135,7 +136,7 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
             paramname = param.variable.name
             if paramname in self.nameList(param_envir):
                 raise Redeclared(Parameter(), paramname)
-            paramtype = Unknown() if param.varDimen == [] else ArrayType(param.varDimen.copy(), Unknown())
+            paramtype = Unknown() if param.varDimen == [] else ArrayType(deepcopy(param.varDimen), Unknown())
             param_envir.append(Symbol(paramname, paramtype))
       
         # update param of this function from outer environment
@@ -143,13 +144,13 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
             param_envir[index].mtype = self.symbol(ast.name.name, c).mtype.intype[index]
 
         # visit local var declare
-        local_envir = param_envir.copy()
+        local_envir = deepcopy(param_envir)
         for vardecl in ast.body[0]:
             self.visit(vardecl, local_envir)
         
         # visit statement
         # total_envir = {**c, **local_envir}
-        total_envir = local_envir.copy()
+        total_envir = deepcopy(local_envir)
         for name in self.nameList(c):
             if name not in self.nameList(local_envir):
                 total_envir.append(self.symbol(name,c))
@@ -183,28 +184,14 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
                     self.symbol(total_envir[-1].name, total_envir).mtype.intype[index] = type2
 
                     self.symbol("Current Function", total_envir).mtype.intype[index] = type2
-                    # if type1 == Unknown():
-                    #     type1 = type2
-                    #     total_envir[paramname] = type2
-                    # if isinstance(type1, ArrayType):
-                    #     if type1.eletype == Unknown():
-                    #         type1.eletype = type2.eletype
-                    #         total_envir[paramname].eletype = type2.eletype
-                    # if type2 == Unknown():
-                    #     type2 = type1
-                    #     total_envir[ast.name.name].intype[paramindex] = type1
-                    # if isinstance(type2, ArrayType):
-                    #     if type2.eletype == Unknown():
-                    #         type2.eletype = type1.eletype
-                    #         total_envir[ast.name.name].intype[paramindex].eletype = type1.eletype
-                
-                    # if type1 != type2: # does this happen ???
-                    #     raise TypeMismatchInStatement(stmt)
 
         # update global environment
         for name in self.nameList(c):
             if name not in self.nameList(local_envir):
                 self.symbol(name, c).mtype = self.symbol(name, total_envir).mtype
+            else:
+                if not isinstance(self.symbol(total_envir[-1].name, total_envir).mtype, MType):
+                    self.symbol(total_envir[-1].name, c).mtype.restype = self.symbol("Current Function", total_envir).mtype.restype
 
         # check function not return
         if self.symbol(total_envir[-1].name, c).mtype.restype == Unknown():
@@ -268,7 +255,7 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
                 self.visit(vardecl, local_envir)
 
             # visit if/elif statement
-            total_envir = c.copy()
+            total_envir = deepcopy(c)
             for name in self.nameList(local_envir):
                 if name in self.nameList(c):
                     self.symbol(name, total_envir).mtype = self.symbol(name, local_envir).mtype
@@ -296,7 +283,7 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
             self.visit(vardecl, local_envir)
 
         # visit else statement
-        total_envir = c.copy()
+        total_envir = deepcopy(c)
         for name in self.nameList(local_envir):
             if name in self.nameList(c):
                 self.symbol(name, total_envir).mtype = self.symbol(name, local_envir).mtype
@@ -343,7 +330,7 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
 
             # visit if/elif statement
             # total_envir = {**c, **local_envir}
-            total_envir = c.copy()
+            total_envir = deepcopy(c)
             for name in self.nameList(local_envir):
                 if name in self.nameList(c):
                     self.symbol(name, total_envir).mtype = self.symbol(name, local_envir).mtype
@@ -377,7 +364,7 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
             self.visit(vardecl, local_envir)
 
         # visit else statement
-        total_envir = c.copy()
+        total_envir = deepcopy(c)
         for name in self.nameList(local_envir):
             if name in self.nameList(c):
                 self.symbol(name, total_envir).mtype = self.symbol(name, local_envir).mtype
@@ -458,7 +445,7 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
             self.visit(vardecl, local_envir)
 
         # visit local statement
-        total_envir = c.copy()
+        total_envir = deepcopy(c)
         for name in self.nameList(local_envir):
             if name in self.nameList(c):
                 self.symbol(name, total_envir).mtype = self.symbol(name, local_envir).mtype
@@ -521,7 +508,7 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
             self.visit(vardecl, local_envir)
 
         # visit local statement
-        total_envir = c.copy()
+        total_envir = deepcopy(c)
         for name in self.nameList(local_envir):
             if name in self.nameList(c):
                 self.symbol(name, total_envir).mtype = self.symbol(name, local_envir).mtype
@@ -538,6 +525,11 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
                 if i < len(ast.sl[1]) - 1:
                     raise UnreachableStatement(ast.sl[1][i+1])
 
+        # update outer environment
+        for name in self.nameList(c):
+            if name not in self.nameList(local_envir):
+                self.symbol(name, c).mtype = self.symbol(name, total_envir).mtype
+
         # visit expression
         exptype = self.visit(ast.exp, c)
         if exptype == TypeCannotInferred():
@@ -548,12 +540,8 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         if exptype != BoolType():
             raise TypeMismatchInStatement(ast)
 
-        # update outer environment
-        for name in self.nameList(c):
-            if name not in self.nameList(local_envir):
-                self.symbol(name, c).mtype = self.symbol(name, total_envir).mtype
-
         self.symbol("Current Function", total_envir).mtype.notReturn = True
+
 
     def visitWhile(self,ast, c):
         # visit expression
@@ -572,7 +560,7 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
             self.visit(vardecl, local_envir)
 
         # visit local statement
-        total_envir = c.copy()
+        total_envir = deepcopy(c)
         for name in self.nameList(local_envir):
             if name in self.nameList(c):
                 self.symbol(name, total_envir).mtype = self.symbol(name, local_envir).mtype

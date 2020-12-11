@@ -3551,3 +3551,80 @@ class CheckSuite(unittest.TestCase):
         expect = str(FunctionNotReturn("main"))
         self.assertTrue(TestChecker.test(input,expect,607))
 
+    def test_extra_10(self):
+        """Simple program: main"""
+        input = """
+        Var: x;
+        Function: main
+            Body:
+                foo(1);
+                foo(foo(10));
+                Return;
+            EndBody.
+        Function: foo
+            Parameter: x
+            Body:
+                Return;
+            EndBody."""
+        expect = str(TypeMismatchInStatement(CallStmt(Id("foo"), [CallExpr(Id("foo"), [IntLiteral(10)])])))
+        self.assertTrue(TestChecker.test(input,expect,608))
+
+    def test_extra_11(self):
+        """Created automatically"""
+        input = """Function: main 
+        Parameter: varrr
+        Body:
+            Var: x =1;
+            While x>1 Do
+                Var: x =1.5;
+                x= x+.1.5;
+            EndWhile.
+            x = 1.5;
+        EndBody."""
+        expect = str(TypeMismatchInStatement(Assign(Id("x"), FloatLiteral(1.5))))
+        self.assertTrue(TestChecker.test(input,expect,609))
+
+    def test_extra_12(self):
+        """Created automatically"""
+        input = """Function: main 
+        Parameter: varrr
+        Body:
+            Var: x =1;
+            Do
+                Var: x =1.5;
+                x= x+.1.5;
+            While x>1
+            EndDo.
+        EndBody."""
+        expect = str("")
+        self.assertTrue(TestChecker.test(input,expect,610))
+
+    def test_extra_13(self):
+        """Created automatically"""
+        input = """Function: main 
+        Parameter: varrr
+        Body:
+            Var: x =1, i;
+            For (i = 1, i< 2, 1) Do
+                Var: x =1.5;
+                x= x+.1.5;
+            EndFor.
+            x = 1.5;
+        EndBody."""
+        expect = str(TypeMismatchInStatement(Assign(Id("x"), FloatLiteral(1.5))))
+        self.assertTrue(TestChecker.test(input,expect,611))
+
+    def test_extra_14(self):
+        """Created automatically"""
+        input = """Function: main 
+        Parameter: varrr
+        Body:
+            Var: x =1, i;
+            If (i > 1) Then
+                Var: x =1.5;
+                x= x+.1.5;
+            EndIf.
+            x = 1.5;
+        EndBody."""
+        expect = str(TypeMismatchInStatement(Assign(Id("x"), FloatLiteral(1.5))))
+        self.assertTrue(TestChecker.test(input,expect,612))
