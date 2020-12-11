@@ -2,5 +2,6 @@
         Function: main
             Parameter: a[3]
             Body:
-                a = main({1,2,3});
+                Var: x;
+                x = 1 + main({1,2,3});
             EndBody.

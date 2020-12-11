@@ -1,0 +1,6 @@
+
+        Function: main
+            Parameter: a
+            Body:
+                a = main(main(1));
+            EndBody.

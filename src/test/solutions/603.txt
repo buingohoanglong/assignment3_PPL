@@ -1,1 +1,1 @@
-Type Mismatch In Statement: If(CallExpr(Id(foo),[]),[],[])Else([],[])
+Type Mismatch In Statement: Dowhile([],[Assign(Id(x),IntLiteral(1))],Id(x))

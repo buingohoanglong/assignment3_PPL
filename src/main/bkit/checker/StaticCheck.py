@@ -229,6 +229,20 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         self.direct_infer(e=ast.lhs, inferred_type=ltype, c=c)
         # rhs type update
         self.direct_infer(e=ast.rhs, inferred_type=rtype, c=c)
+
+        # code for function not return
+        if isinstance(ast.lhs, ArrayCell):
+            if isinstance(ast.lhs.arr, CallExpr):
+                if ast.lhs.arr.method.name == c[-1].name:
+                    self.symbol("Current Function", c).mtype.notReturn = True
+        if isinstance(ast.rhs, ArrayCell):
+            if isinstance(ast.rhs.arr, CallExpr):
+                if ast.rhs.arr.method.name == c[-1].name:
+                    self.symbol("Current Function", c).mtype.notReturn = True
+        if isinstance(ast.rhs, CallExpr):
+            if ast.rhs.method.name == c[-1].name:
+                self.symbol("Current Function", c).mtype.notReturn = True
+
         
 
     def visitIf(self,ast, c):
@@ -649,6 +663,23 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         # type checking
         if ltype != typedict[ast.op]['operand_type'] or rtype != typedict[ast.op]['operand_type']:
             raise TypeMismatchInExpression(ast)
+
+        # code for function not return
+        if isinstance(ast.left, ArrayCell):
+            if isinstance(ast.left.arr, CallExpr):
+                if ast.left.arr.method.name == c[-1].name:
+                    self.symbol("Current Function", c).mtype.notReturn = True
+        if isinstance(ast.left, CallExpr):
+            if ast.left.method.name == c[-1].name:
+                self.symbol("Current Function", c).mtype.notReturn = True
+        if isinstance(ast.right, ArrayCell):
+            if isinstance(ast.right.arr, CallExpr):
+                if ast.right.arr.method.name == c[-1].name:
+                    self.symbol("Current Function", c).mtype.notReturn = True
+        if isinstance(ast.right, CallExpr):
+            if ast.right.method.name == c[-1].name:
+                self.symbol("Current Function", c).mtype.notReturn = True
+
         return typedict[ast.op]['return_type']
 
 
@@ -670,6 +701,16 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         # type checking
         if exptype != typedict[ast.op]['operand_type']:
             raise TypeMismatchInExpression(ast)
+
+        # code for function not return
+        if isinstance(ast.body, ArrayCell):
+            if isinstance(ast.body.arr, CallExpr):
+                if ast.body.arr.method.name == c[-1].name:
+                    self.symbol("Current Function", c).mtype.notReturn = True
+        if isinstance(ast.body, CallExpr):
+            if ast.body.method.name == c[-1].name:
+                self.symbol("Current Function", c).mtype.notReturn = True
+
         return typedict[ast.op]['return_type']
     
                 
@@ -697,6 +738,13 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
             self.symbol(ast.method.name, c).mtype.intype[i] = type1
             # argument type update 
             self.direct_infer(e=ast.param[i], inferred_type=type2, c=c)
+            if isinstance(ast.param[i], ArrayCell):
+                if isinstance(ast.param[i].arr, CallExpr):
+                    if ast.param[i].arr.method.name == c[-1].name:
+                        self.symbol("Current Function", c).mtype.notReturn = True
+            if isinstance(ast.param[i], CallExpr):
+                if ast.param[i].method.name == c[-1].name:
+                    self.symbol("Current Function", c).mtype.notReturn = True
 
             # if func call inside the same func declare
             # update param of declared function in every agument iteration
@@ -707,7 +755,7 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
                     self.symbol(ast.method.name, c).mtype.intype[j], c[j].mtype = self.mutual_infer(type1=type1, type2=type2, e2=None, isStmt=False, isReturnStmt=False, acceptdoubleUnknown=True, ast=ast)
 
                     self.symbol("Current Function", c).mtype.intype[j] = self.symbol(ast.method.name, c).mtype.intype[j]
-      
+            
         if ast.method.name != c[-1].name:   # if it is not call by itself
             self.symbol(ast.method.name, c).mtype.isinvoked = True
         return self.symbol(ast.method.name, c).mtype.restype

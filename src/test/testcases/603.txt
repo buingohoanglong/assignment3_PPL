@@ -1,11 +1,8 @@
 
-        Function: foo
-            Body:
-                Return 1;
-            EndBody.
         Function: main
             Body:
-                If (foo()) Then
-                EndIf.
-                Return True;
+                Var: x;
+                Do
+                    x = 1;
+                While x EndDo.
             EndBody.
