@@ -107,7 +107,7 @@ class CheckSuite(unittest.TestCase):
 
     def test_redeclare_variable_2(self):
         """Simple program: main"""
-        input = """Var: x, y = {1,2,3}, z;
+        input = """Var: x, y[3] = {1,2,3}, z;
         Var: m, n[2][3], y = 1;
         Function: main
             Body:
@@ -1712,7 +1712,7 @@ class CheckSuite(unittest.TestCase):
         input = """           
         Function: main
             Body:
-                Var: a = {{1,2}, {3,4}, {5,6}}, x, y;
+                Var: a[3][2] = {{1,2}, {3,4}, {5,6}}, x, y;
                 a[a[x+y][x-y]][a[x*y][x\y]] = 1;
                 Return;
             EndBody."""

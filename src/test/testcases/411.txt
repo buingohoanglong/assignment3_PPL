@@ -1,4 +1,4 @@
-Var: x, y = {1,2,3}, z;
+Var: x, y[3] = {1,2,3}, z;
         Var: m, n[2][3], y = 1;
         Function: main
             Body:

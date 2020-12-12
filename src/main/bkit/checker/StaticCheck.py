@@ -121,12 +121,15 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         if idname in self.nameList(c):
             raise Redeclared(Variable(), idname)
         idtype = Unknown() if not ast.varInit else self.visit(ast.varInit, c)
-        if ast.varDimen != []:
+        if ast.varDimen != []:  # array type
             if idtype == Unknown():
                 idtype = ArrayType(deepcopy(ast.varDimen), Unknown())
             else:
                 if ast.varDimen != idtype.dimen:
                     raise TypeMismatchInExpression(ast.varInit) # ???
+        else:   # scalar type
+            if isinstance(idtype, ArrayType):
+                raise TypeMismatchInExpression(ast.varInit) # ???
         c.append(Symbol(idname, idtype))
 
     def visitFuncDecl(self,ast, c):
