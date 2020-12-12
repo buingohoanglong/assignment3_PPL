@@ -1,0 +1,12 @@
+
+            Function: main
+                Body:
+                    Var: a[5];
+                    a = goo();
+                EndBody.
+
+            Function: goo
+                Body:
+                    Return {1,2,3,4,5};
+                EndBody.
+        

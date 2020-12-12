@@ -214,7 +214,10 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
             raise TypeMismatchInStatement(ast)
 
         # type inference
-        ltype, rtype = self.mutual_infer(type1=ltype, type2=rtype, e2=ast.rhs, isStmt=True, isReturnStmt=False, acceptdoubleUnknown=False, ast=ast)
+        result = self.mutual_infer(type1=ltype, type2=rtype, e2=ast.rhs, isStmt=True, isReturnStmt=False, acceptdoubleUnknown=False, ast=ast)
+        if result == TypeCannotInferred():
+            raise TypeCannotBeInferred(ast)
+        ltype, rtype = result
         # lhs type update
         self.direct_infer(e=ast.lhs, inferred_type=ltype, c=c)
         # rhs type update
@@ -601,7 +604,10 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
                 raise TypeCannotBeInferred(ast)
             type1 = self.symbol(ast.method.name, c).mtype.intype[i]    # param type
             # type inference
-            type1, type2 = self.mutual_infer(type1=type1, type2=type2, e2=ast.param[i], isStmt=True, isReturnStmt=False, acceptdoubleUnknown=False, ast=ast)
+            result = self.mutual_infer(type1=type1, type2=type2, e2=ast.param[i], isStmt=True, isReturnStmt=False, acceptdoubleUnknown=False, ast=ast)
+            if result == TypeCannotInferred():
+                raise TypeCannotBeInferred(ast)
+            type1, type2 = result
             # param type update
             self.symbol(ast.method.name, c).mtype.intype[i] = type1
             # argument type update 
@@ -867,8 +873,11 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
                 type1 = type2
         elif type1 != Unknown() and type2 == Unknown():
             if isinstance(type1, ArrayType):
-                if isinstance(e2, CallExpr) and type1.eletype != Unknown():
-                    type2 = type1
+                if isinstance(e2, CallExpr):
+                    if type1.eletype != Unknown():
+                        type2 = type1
+                    else:
+                        return TypeCannotInferred()
                 else:
                     if isStmt:
                         raise TypeMismatchInStatement(ast)

@@ -3628,3 +3628,41 @@ class CheckSuite(unittest.TestCase):
         EndBody."""
         expect = str(TypeMismatchInStatement(Assign(Id("x"), FloatLiteral(1.5))))
         self.assertTrue(TestChecker.test(input,expect,612))
+
+    def test_extra_15(self):
+        input ="""
+            Function: foo
+                Parameter: x[5]
+                Body:
+                    Return 1;
+                EndBody.
+
+            Function: main
+                Body:
+                    Var: a;
+                    a = foo(goo());
+                EndBody.
+
+            Function: goo
+                Body:
+                    Return {1,2,3,4,5};
+                EndBody.
+        """
+        expect = str(TypeCannotBeInferred(Assign(Id("a"), CallExpr(Id("foo"), [CallExpr(Id("goo"), [])]))))
+        self.assertTrue(TestChecker.test(input,expect,613))
+
+    def test_extra_16(self):
+        input ="""
+            Function: main
+                Body:
+                    Var: a[5];
+                    a = goo();
+                EndBody.
+
+            Function: goo
+                Body:
+                    Return {1,2,3,4,5};
+                EndBody.
+        """
+        expect = str(TypeCannotBeInferred(Assign(Id("a"), CallExpr(Id("goo"), []))))
+        self.assertTrue(TestChecker.test(input,expect,614))

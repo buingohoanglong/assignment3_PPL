@@ -1,0 +1,18 @@
+
+            Function: foo
+                Parameter: x[5]
+                Body:
+                    Return 1;
+                EndBody.
+
+            Function: main
+                Body:
+                    Var: a;
+                    a = foo(goo());
+                EndBody.
+
+            Function: goo
+                Body:
+                    Return {1,2,3,4,5};
+                EndBody.
+        
