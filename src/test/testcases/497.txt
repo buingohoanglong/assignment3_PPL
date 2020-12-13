@@ -8,6 +8,6 @@
             EndBody.
         Function: main
             Body:
-                printStr(string_of_int(foo({1,2})));
+                printStrLn(string_of_int(foo({1,2})));
                 Return;
             EndBody.

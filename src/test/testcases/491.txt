@@ -27,7 +27,7 @@
                 Var: i;
                 arr = sort(arr);
                 For (i = 0, i < 5, 1) Do
-                    printStr(string_of_int(arr[i]));
+                    printStrLn(string_of_int(arr[i]));
                     printLn();
                 EndFor.
             EndBody.

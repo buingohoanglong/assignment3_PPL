@@ -12,13 +12,13 @@
                 While count < 100 Do
                     Var: i;
                     If (count % 3 == 0) || (count % 5 == 0) Then
-                        printStr("Skip");
+                        printStrLn("Skip");
                         Continue;
                     ElseIf (count % 4 == 0) Then
                         Break;
                     EndIf.
                     For (i = 0 , i < 4, 1) Do
-                        printStr(arr[i]);
+                        printStrLn(arr[i]);
                         printLn();
                     EndFor.
                     count = count + -i + 1;

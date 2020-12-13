@@ -1485,13 +1485,13 @@ class CheckSuite(unittest.TestCase):
                 While count < 100 Do
                     Var: i;
                     If (count % 3 == 0) || (count % 5 == 0) Then
-                        printStr("Skip");
+                        printStrLn("Skip");
                         Continue;
                     ElseIf (count % 4 == 0) Then
                         Break;
                     EndIf.
                     For (i = 0 , i < 4, 1) Do
-                        printStr(arr[i]);
+                        printStrLn(arr[i]);
                         printLn();
                     EndFor.
                     count = count + -i + 1;
@@ -1537,7 +1537,7 @@ class CheckSuite(unittest.TestCase):
                 Var: i;
                 arr = sort(arr);
                 For (i = 0, i < 5, 1) Do
-                    printStr(string_of_int(arr[i]));
+                    printStrLn(string_of_int(arr[i]));
                     printLn();
                 EndFor.
             EndBody."""
@@ -1631,7 +1631,7 @@ class CheckSuite(unittest.TestCase):
         Function: main
             Body:
                 x = 10;
-                printStr(string_of_int(fact(x)));
+                printStrLn(string_of_int(fact(x)));
                 Return;
             EndBody."""
         expect = str("")
@@ -1672,7 +1672,7 @@ class CheckSuite(unittest.TestCase):
             EndBody.
         Function: main
             Body:
-                printStr(string_of_int(foo({1,2})));
+                printStrLn(string_of_int(foo({1,2})));
                 Return;
             EndBody."""
         expect = str("")
