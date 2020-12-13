@@ -4,7 +4,7 @@
             Parameter: x
             Body:
                 While (foo(x + 1)) Do
-                    While (y >. float_of_int(x)) Do
+                    While (y >. float_to_int(x)) Do
                         Return x;
                     EndWhile.
                 EndWhile.

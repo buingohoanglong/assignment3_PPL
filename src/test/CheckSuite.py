@@ -1177,7 +1177,7 @@ class CheckSuite(unittest.TestCase):
             Parameter: x, y
             Body:
                 Var: z;
-                z = foo( float_of_int(y) +. foo(1.1, 1.1) , int_of_float(foo(x, 1)) );
+                z = foo( float_to_int(y) +. foo(1.1, 1.1) , int_of_float(foo(x, 1)) );
                 Return z;
             EndBody.
         Function: main
@@ -1312,7 +1312,7 @@ class CheckSuite(unittest.TestCase):
             Parameter: x
             Body:
                 While (foo(x + 1)) Do
-                    While (y >. float_of_int(x)) Do
+                    While (y >. float_to_int(x)) Do
                         Return x;
                     EndWhile.
                 EndWhile.
