@@ -1,5 +1,5 @@
 
-        Var: x;
+        Var: x = 1;
         Function: main
             Body:
                 foo(1);

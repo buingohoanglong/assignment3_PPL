@@ -8,7 +8,6 @@
                         Return x;
                     EndWhile.
                 EndWhile.
-                Return int_of_float(y);
             EndBody.
         Function: foo
             Parameter: z

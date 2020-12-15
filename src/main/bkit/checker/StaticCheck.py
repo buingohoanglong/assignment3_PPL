@@ -60,6 +60,13 @@ class TypeCannotInferred:
     value: str = 'type cannnot inferred'
 
 @dataclass
+class Result:
+    breakcontinue: str = "" # "break" for Break(), "continue" for Continue()
+    hasreturn: bool = False # check Return stmt, loop has return, if has all path return
+    terminate: bool = False # check unreachable stmt
+
+
+@dataclass
 class Symbol:
     name: str
     mtype:Type
@@ -115,7 +122,6 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
                     raise UnreachableFunction(symbol.name)
 
 
-
     def visitVarDecl(self,ast, c):
         idname = ast.variable.name
         if idname in self.nameList(c):
@@ -131,6 +137,7 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
             if isinstance(idtype, ArrayType):
                 raise TypeMismatchInExpression(ast.varInit) # ???
         c.append(Symbol(idname, idtype))
+
 
     def visitFuncDecl(self,ast, c):
         # visit param
@@ -152,30 +159,31 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
             self.visit(vardecl, local_envir)
         
         # visit statement
-        # total_envir = {**c, **local_envir}
         total_envir = deepcopy(local_envir)
         for name in self.nameList(c):
             if name not in self.nameList(local_envir):
                 total_envir.append(self.symbol(name,c))
 
-        # if self.symbol(ast.name.name, c).mtype == self.symbol(ast.name.name, total_envir).mtype:  # current function is not hiden in local scope (by same name variable)
+
         total_envir.append(Symbol("Current Function", self.symbol(ast.name.name, c).mtype))
         current_function = self.symbol(ast.name.name, total_envir)
         del total_envir[self.index(ast.name.name, total_envir)]
         total_envir.append(current_function)   # append current function to the end of dictionary
-        # code for function not return
-        current_function = self.symbol("Current Function", total_envir)
-        if not isinstance(current_function.mtype.restype, VoidType) and not isinstance(current_function.mtype.restype, Unknown):
-            current_function.mtype.notReturn = True
         # visit stmt
+        hasreturn = False
         for i in range(len(ast.body[1])):
             stmt = ast.body[1][i]
             result = self.visit(stmt, total_envir)
-            if isinstance(result, Break) or isinstance(result, Continue):   # check not in loop
-                raise NotInLoop(result)
-            if isinstance(stmt, Break) or isinstance(stmt, Continue) or isinstance(stmt, Return): # check unreachable stmt
+
+            if result.breakcontinue:   # check not in loop
+                raise NotInLoop(Break() if result.breakcontinue == "break" else Continue())
+
+            if result.terminate:    # check unreachable stmt
                 if i < len(ast.body[1]) - 1:
                     raise UnreachableStatement(ast.body[1][i+1])
+
+            if result.hasreturn: # check function not return
+                hasreturn = True
 
             # type inference for function parameters
             if isinstance(total_envir[-1].mtype, MType): # current function is not hiden in local scope (by same name variable)
@@ -200,11 +208,12 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         if self.symbol(total_envir[-1].name, c).mtype.restype == Unknown():
             self.symbol(total_envir[-1].name, c).mtype.restype = VoidType()
         else:
-            if self.symbol("Current Function", total_envir).mtype.notReturn:
+            if not hasreturn:
                 if self.symbol(total_envir[-1].name, c).mtype.restype != VoidType():
                     raise FunctionNotReturn(total_envir[-1].name)
 
-    def visitAssign(self,ast, c):   # left hand side can be in any type except VoidType (what about MType ???)
+
+    def visitAssign(self,ast, c):   # left hand side can be in any type except VoidType
         ltype = self.visit(ast.lhs, c)
         rtype = self.visit(ast.rhs, c)
         ltype = self.visit(ast.lhs, c)
@@ -223,26 +232,15 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         # rhs type update
         self.direct_infer(e=ast.rhs, inferred_type=rtype, c=c)
 
-        # code for function not return
-        if isinstance(ast.lhs, ArrayCell):
-            if isinstance(ast.lhs.arr, CallExpr):
-                if ast.lhs.arr.method.name == c[-1].name:
-                    self.symbol("Current Function", c).mtype.notReturn = True
-        if isinstance(ast.rhs, ArrayCell):
-            if isinstance(ast.rhs.arr, CallExpr):
-                if ast.rhs.arr.method.name == c[-1].name:
-                    self.symbol("Current Function", c).mtype.notReturn = True
-        if isinstance(ast.rhs, CallExpr):
-            if ast.rhs.method.name == c[-1].name:
-                self.symbol("Current Function", c).mtype.notReturn = True
+        return Result()
 
         
 
     def visitIf(self,ast, c):
-        # ###################################################################################
-        # First visit
-        # ###################################################################################
-        result = None   # used to detect not in loop
+        result = Result()   # used to store break/continue and return
+        return_count = 0    # used to check all path of if have return
+        breakcontinue_lst = []
+        terminate_count = 0 # used to check all path of if have terminate signal (break, continue, return)
         current_function_name = c[-1].name
         for ifthenstmt in ast.ifthenStmt:
             # visit condition expression
@@ -271,99 +269,30 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
             del total_envir[self.index(current_function_name, total_envir)]
             total_envir.append(current_function)   # append current function to the end of dictionary
 
-            for i in range(len(ifthenstmt[2])):
-                stmt = ifthenstmt[2][i]
-                result = self.visit(stmt, total_envir)
-                if isinstance(stmt, Break) or isinstance(stmt, Continue) or isinstance(stmt, Return): # check unreachable stmt
-                    if i < len(ifthenstmt[2]) - 1:
-                        raise UnreachableStatement(ifthenstmt[2][i+1])
-
-            # update outer environment
-            for name in self.nameList(c):
-                if name not in self.nameList(local_envir):
-                    self.symbol(name, c).mtype = self.symbol(name, total_envir).mtype
-        
-        # visit else local var declare
-        local_envir = []
-        for vardecl in ast.elseStmt[0]:
-            self.visit(vardecl, local_envir)
-
-        # visit else statement
-        total_envir = deepcopy(c)
-        for name in self.nameList(local_envir):
-            if name in self.nameList(c):
-                self.symbol(name, total_envir).mtype = self.symbol(name, local_envir).mtype
-            else:
-                total_envir.append(self.symbol(name, local_envir))
-        current_function = self.symbol(current_function_name, total_envir)
-        del total_envir[self.index(current_function_name, total_envir)]
-        total_envir.append(current_function)   # append current function to the end of dictionary
-
-        for i in range(len(ast.elseStmt[1])):
-            stmt = ast.elseStmt[1][i]
-            result = self.visit(stmt, total_envir)
-            if isinstance(stmt, Break) or isinstance(stmt, Continue) or isinstance(stmt, Return): # check unreachable stmt
-                if i < len(ast.elseStmt[1]) - 1:
-                    raise UnreachableStatement(ast.elseStmt[1][i+1])
-        
-        # update outer environment
-        for name in self.nameList(c):
-            if name not in self.nameList(local_envir):
-                self.symbol(name, c).mtype = self.symbol(name, total_envir).mtype
-
-
-        # ###################################################################################
-        # Second visit to check function not return
-        # ###################################################################################
-        result = None   # used to detect not in loop
-        current_function_name = c[-1].name
-        return_lst = [] # used to detect function not return
-        for ifthenstmt in ast.ifthenStmt:
-            # visit condition expression
-            exptype = self.visit(ifthenstmt[0], c)
-            if exptype == TypeCannotInferred():
-                raise TypeCannotBeInferred(ast)
-            if exptype == Unknown():    # exp is Id, CallExpr, ArrayCell
-                exptype = BoolType()
-                self.direct_infer(e=ifthenstmt[0], inferred_type=exptype, c=c)
-            if exptype != BoolType():
-                raise TypeMismatchInStatement(ast)
-
-            # visit if/elif local var declare
-            local_envir = []
-            for vardecl in ifthenstmt[1]:
-                self.visit(vardecl, local_envir)
-
-            # visit if/elif statement
-            # total_envir = {**c, **local_envir}
-            total_envir = deepcopy(c)
-            for name in self.nameList(local_envir):
-                if name in self.nameList(c):
-                    self.symbol(name, total_envir).mtype = self.symbol(name, local_envir).mtype
-                else:
-                    total_envir.append(self.symbol(name, local_envir))
-            current_function = self.symbol(current_function_name, total_envir)
-            del total_envir[self.index(current_function_name, total_envir)]
-            total_envir.append(current_function)   # append current function to the end of dictionary
-            # code for function not return
-            current_function = self.symbol("Current Function", total_envir)
-            if not isinstance(current_function.mtype.restype, VoidType) and not isinstance(current_function.mtype.restype, Unknown):
-                current_function.mtype.notReturn = True
+            localterminate = False
             # visit stmt
             for i in range(len(ifthenstmt[2])):
                 stmt = ifthenstmt[2][i]
-                result = self.visit(stmt, total_envir)
-                if isinstance(stmt, Break) or isinstance(stmt, Continue) or isinstance(stmt, Return): # check unreachable stmt
+                temp_result = self.visit(stmt, total_envir)
+                if temp_result.terminate:    
                     if i < len(ifthenstmt[2]) - 1:
                         raise UnreachableStatement(ifthenstmt[2][i+1])
+                    localterminate = True
+
+                if temp_result.breakcontinue:
+                    breakcontinue_lst.append(Break() if temp_result.breakcontinue == "break" else Continue())
+
+                if temp_result.hasreturn:
+                    return_count += 1
+                    localterminate = True
+            if localterminate:
+                terminate_count += 1
 
             # update outer environment
             for name in self.nameList(c):
                 if name not in self.nameList(local_envir):
                     self.symbol(name, c).mtype = self.symbol(name, total_envir).mtype
-            
-            return_lst.append(self.symbol("Current Function", total_envir).mtype.notReturn)
-  
+        
         # visit else local var declare
         local_envir = []
         for vardecl in ast.elseStmt[0]:
@@ -379,29 +308,41 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         current_function = self.symbol(current_function_name, total_envir)
         del total_envir[self.index(current_function_name, total_envir)]
         total_envir.append(current_function)   # append current function to the end of dictionary
-        # code for function not return
-        current_function = self.symbol("Current Function", total_envir)
-        if not isinstance(current_function.mtype.restype, VoidType) and not isinstance(current_function.mtype.restype, Unknown):
-            current_function.mtype.notReturn = True
+
+        localterminate = False
         # visit stmt
         for i in range(len(ast.elseStmt[1])):
             stmt = ast.elseStmt[1][i]
-            result = self.visit(stmt, total_envir)
-            if isinstance(stmt, Break) or isinstance(stmt, Continue) or isinstance(stmt, Return): # check unreachable stmt
+            temp_result = self.visit(stmt, total_envir)
+            if temp_result.terminate:
                 if i < len(ast.elseStmt[1]) - 1:
                     raise UnreachableStatement(ast.elseStmt[1][i+1])
+                localterminate = True
+
+            if temp_result.breakcontinue:
+                breakcontinue_lst.append(Break() if temp_result.breakcontinue == "break" else Continue())
+               
+            if temp_result.hasreturn:
+                return_count += 1
+                localterminate = True
+        if localterminate:
+            terminate_count += 1
         
         # update outer environment
         for name in self.nameList(c):
             if name not in self.nameList(local_envir):
                 self.symbol(name, c).mtype = self.symbol(name, total_envir).mtype
 
-        # code for function not return
-        return_lst.append(self.symbol("Current Function", total_envir).mtype.notReturn)
-        return_state = return_lst[0]
-        for i in range(len(return_lst)):
-            if return_state != return_lst[i]:
-                self.symbol("Current Function", total_envir).mtype.notReturn = True
+       
+        # update result
+        if len(breakcontinue_lst) != 0:
+            result.breakcontinue = "break" if isinstance(breakcontinue_lst[0], Break) else "continue"
+        else:
+            result.breakcontinue = ""
+
+        result.hasreturn = True if return_count == len(ast.ifthenStmt) + 1 else False
+
+        result.terminate = True if terminate_count == len(ast.ifthenStmt) + 1 else False
 
         return result
     
@@ -461,31 +402,35 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         current_function = self.symbol(current_function_name, total_envir)
         del total_envir[self.index(current_function_name, total_envir)]
         total_envir.append(current_function)   # append current function to the end of dictionary
+        result = Result() # used to store break/continue and return
+        # visit stmt
         for i in range(len(ast.loop[1])):
             stmt = ast.loop[1][i]
-            self.visit(stmt, total_envir)
-            if isinstance(stmt, Break) or isinstance(stmt, Continue) or isinstance(stmt, Return): # check unreachable stmt
+            temp_result = self.visit(stmt, total_envir)
+            if temp_result.terminate:
                 if i < len(ast.loop[1]) - 1:
                     raise UnreachableStatement(ast.loop[1][i+1])
+
+            if temp_result.hasreturn:
+                result.hasreturn = True
+                result.terminate = True
 
         # update outer environment
         for name in self.nameList(c):
             if name not in self.nameList(local_envir):
                 self.symbol(name, c).mtype = self.symbol(name, total_envir).mtype
 
-        self.symbol("Current Function", total_envir).mtype.notReturn = True
+        return result
 
 
     def visitBreak(self,ast, c):
-        return Break()
+        return Result("break", False, True)
 
     def visitContinue(self,ast, c):
-        return Continue()
+        return Result("continue", False, True)
 
     def visitReturn(self,ast, c):
         returntype = VoidType() if ast.expr == None else self.visit(ast.expr, c)
-        # current_function_name = c[-1].name  # what if current function is hiden by local variable with same name
-        # current_returntype = self.symbol(current_function_name, c).mtype.restype
         current_returntype = self.symbol("Current Function", c).mtype.restype
 
         # check VoidType
@@ -503,8 +448,7 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         # expr type update 
         self.direct_infer(e=ast.expr, inferred_type=returntype, c=c)
 
-        
-        self.symbol("Current Function", c).mtype.notReturn = False
+        return Result("", True, True)
 
 
     def visitDowhile(self,ast, c):
@@ -524,12 +468,18 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         current_function = self.symbol(current_function_name, total_envir)
         del total_envir[self.index(current_function_name, total_envir)]
         total_envir.append(current_function)   # append current function to the end of dictionary
+        result = Result() # used to store break/continue and return
+        # visit stmt
         for i in range(len(ast.sl[1])):
             stmt = ast.sl[1][i]
-            self.visit(stmt, total_envir)
-            if isinstance(stmt, Break) or isinstance(stmt, Continue) or isinstance(stmt, Return): # check unreachable stmt
+            temp_result = self.visit(stmt, total_envir)
+            if temp_result.terminate:
                 if i < len(ast.sl[1]) - 1:
                     raise UnreachableStatement(ast.sl[1][i+1])
+
+            if temp_result.hasreturn:
+                result.hasreturn = True
+                result.terminate = True
 
         # update outer environment
         for name in self.nameList(c):
@@ -546,7 +496,7 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         if exptype != BoolType():
             raise TypeMismatchInStatement(ast)
 
-        self.symbol("Current Function", total_envir).mtype.notReturn = True
+        return result
 
 
     def visitWhile(self,ast, c):
@@ -576,19 +526,25 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         current_function = self.symbol(current_function_name, total_envir)
         del total_envir[self.index(current_function_name, total_envir)]
         total_envir.append(current_function)   # append current function to the end of dictionary
+        result = Result() # used to store break/continue and return
+        # visit stmt
         for i in range(len(ast.sl[1])):
             stmt = ast.sl[1][i]
-            self.visit(stmt, total_envir)
-            if isinstance(stmt, Break) or isinstance(stmt, Continue) or isinstance(stmt, Return): # check unreachable stmt
+            temp_result = self.visit(stmt, total_envir)
+            if temp_result.terminate:
                 if i < len(ast.sl[1]) - 1:
                     raise UnreachableStatement(ast.sl[1][i+1])
+
+            if temp_result.hasreturn:
+                result.hasreturn = True
+                result.terminate = True
 
         # update outer environment
         for name in self.nameList(c):
             if name not in self.nameList(local_envir):
                 self.symbol(name, c).mtype = self.symbol(name, total_envir).mtype
 
-        self.symbol("Current Function", total_envir).mtype.notReturn = True
+        return result
 
     def visitCallStmt(self,ast, c):
         if ast.method.name not in self.nameList(c):
@@ -623,7 +579,7 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
 
                     self.symbol("Current Function", c).mtype.intype[j] = self.symbol(ast.method.name, c).mtype.intype[j]
 
-        
+        # check/infer return type
         if self.symbol(ast.method.name, c).mtype.restype == Unknown():
             self.symbol(ast.method.name, c).mtype.restype = VoidType()
         if self.symbol(ast.method.name, c).mtype.restype != VoidType():
@@ -631,6 +587,8 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         
         if ast.method.name != c[-1].name:   # if it is not call by itself
             self.symbol(ast.method.name, c).mtype.isinvoked = True
+
+        return Result()
 
 
     def visitBinaryOp(self,ast, c):
@@ -661,22 +619,6 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         if ltype != typedict[ast.op]['operand_type'] or rtype != typedict[ast.op]['operand_type']:
             raise TypeMismatchInExpression(ast)
 
-        # code for function not return
-        if isinstance(ast.left, ArrayCell):
-            if isinstance(ast.left.arr, CallExpr):
-                if ast.left.arr.method.name == c[-1].name:
-                    self.symbol("Current Function", c).mtype.notReturn = True
-        if isinstance(ast.left, CallExpr):
-            if ast.left.method.name == c[-1].name:
-                self.symbol("Current Function", c).mtype.notReturn = True
-        if isinstance(ast.right, ArrayCell):
-            if isinstance(ast.right.arr, CallExpr):
-                if ast.right.arr.method.name == c[-1].name:
-                    self.symbol("Current Function", c).mtype.notReturn = True
-        if isinstance(ast.right, CallExpr):
-            if ast.right.method.name == c[-1].name:
-                self.symbol("Current Function", c).mtype.notReturn = True
-
         return typedict[ast.op]['return_type']
 
 
@@ -698,15 +640,6 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
         # type checking
         if exptype != typedict[ast.op]['operand_type']:
             raise TypeMismatchInExpression(ast)
-
-        # code for function not return
-        if isinstance(ast.body, ArrayCell):
-            if isinstance(ast.body.arr, CallExpr):
-                if ast.body.arr.method.name == c[-1].name:
-                    self.symbol("Current Function", c).mtype.notReturn = True
-        if isinstance(ast.body, CallExpr):
-            if ast.body.method.name == c[-1].name:
-                self.symbol("Current Function", c).mtype.notReturn = True
 
         return typedict[ast.op]['return_type']
     
@@ -735,13 +668,6 @@ Symbol("printStrLn",MType([StringType()],VoidType()))]
             self.symbol(ast.method.name, c).mtype.intype[i] = type1
             # argument type update 
             self.direct_infer(e=ast.param[i], inferred_type=type2, c=c)
-            if isinstance(ast.param[i], ArrayCell):
-                if isinstance(ast.param[i].arr, CallExpr):
-                    if ast.param[i].arr.method.name == c[-1].name:
-                        self.symbol("Current Function", c).mtype.notReturn = True
-            if isinstance(ast.param[i], CallExpr):
-                if ast.param[i].method.name == c[-1].name:
-                    self.symbol("Current Function", c).mtype.notReturn = True
 
             # if func call inside the same func declare
             # update param of declared function in every agument iteration
